@@ -70,10 +70,10 @@ export function severityColor(sev) {
   }[sev] || 'hsl(var(--muted-foreground))';
 }
 
-// Edge dash speed: higher utilization => faster. util is 0..100
+// Edge dash speed: higher utilization => a bit faster, but overall calm. util is 0..100
 export function edgeSpeed(util) {
   const u = Math.min(1, (util || 0) / 100);
-  return Math.max(0.6, 2.4 - u * 1.8).toFixed(2) + 's';
+  return (Math.max(3, 8 - u * 5)).toFixed(2) + 's';
 }
 
 export const REDUCED_MOTION =

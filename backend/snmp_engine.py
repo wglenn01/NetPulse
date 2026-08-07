@@ -102,32 +102,42 @@ def _parse_interfaces(iftable, ifx):
 
 
 async def poll_snmp(ip, port, community, timeout=2, retries=1):
-    """Return {'sysinfo': {...}, 'interfaces': [...]} or raise on failure."""
+    """Return {'sysinfo': {...}, 'interfaces': [...]} or raise on failure.
+
+    IMPORTANT: the SnmpDispatcher owns a UDP socket; it MUST be closed after
+    every poll or the backend leaks file descriptors (Errno 24).
+    """
     dispatcher = SnmpDispatcher()
-    target = await UdpTransportTarget.create((ip, int(port)), timeout=timeout, retries=retries)
-
-    errI, errS, errIdx, varBinds = await get_cmd(
-        dispatcher, CommunityData(community, mpModel=1), target,
-        *[ObjectType(ObjectIdentity(o)) for o in SYS.values()],
-    )
-    if errI:
-        raise RuntimeError(str(errI))
-    if errS:
-        raise RuntimeError(errS.prettyPrint())
-    vals = {str(vb[0]): vb[1] for vb in varBinds}
-    sysinfo = {}
-    for key, oid in SYS.items():
-        v = vals.get(oid)
-        sysinfo[key] = str(v) if v is not None else ""
     try:
-        sysinfo["uptime_secs"] = int(vals.get(SYS["uptime"], 0)) // 100
-    except Exception:
-        sysinfo["uptime_secs"] = 0
+        target = await UdpTransportTarget.create((ip, int(port)), timeout=timeout, retries=retries)
 
-    iftable = await _walk(dispatcher, community, target, IF_BASE)
-    ifx = await _walk(dispatcher, community, target, IFX_BASE)
-    interfaces = _parse_interfaces(iftable, ifx)
-    return {"sysinfo": sysinfo, "interfaces": interfaces}
+        errI, errS, errIdx, varBinds = await get_cmd(
+            dispatcher, CommunityData(community, mpModel=1), target,
+            *[ObjectType(ObjectIdentity(o)) for o in SYS.values()],
+        )
+        if errI:
+            raise RuntimeError(str(errI))
+        if errS:
+            raise RuntimeError(errS.prettyPrint())
+        vals = {str(vb[0]): vb[1] for vb in varBinds}
+        sysinfo = {}
+        for key, oid in SYS.items():
+            v = vals.get(oid)
+            sysinfo[key] = str(v) if v is not None else ""
+        try:
+            sysinfo["uptime_secs"] = int(vals.get(SYS["uptime"], 0)) // 100
+        except Exception:
+            sysinfo["uptime_secs"] = 0
+
+        iftable = await _walk(dispatcher, community, target, IF_BASE)
+        ifx = await _walk(dispatcher, community, target, IFX_BASE)
+        interfaces = _parse_interfaces(iftable, ifx)
+        return {"sysinfo": sysinfo, "interfaces": interfaces}
+    finally:
+        try:
+            dispatcher.close()
+        except Exception:
+            pass
 
 
 def compute_bandwidth(prev_map, interfaces, now):

@@ -7,6 +7,7 @@ import { usePoll, api } from '@/lib/api';
 import { DeviceNode } from '@/components/topology/DeviceNode';
 import { TrafficEdge } from '@/components/topology/TrafficEdge';
 import { DeviceDrawer } from '@/components/DeviceDrawer';
+import { LinkManager } from '@/components/topology/LinkManager';
 import { edgeSpeed, REDUCED_MOTION } from '@/lib/format';
 
 const nodeTypes = { device: DeviceNode };
@@ -34,7 +35,7 @@ function Legend() {
 }
 
 function TopologyInner() {
-  const { data } = usePoll('/topology', 4000);
+  const { data, refresh } = usePoll('/topology', 4000);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selected, setSelected] = React.useState(null);
@@ -92,6 +93,12 @@ function TopologyInner() {
         <Background variant={BackgroundVariant.Dots} gap={26} size={1} color="rgba(255,255,255,0.06)" />
         <Controls showInteractive={false} />
       </ReactFlow>
+      <div className="absolute top-4 right-4 z-10">
+        <LinkManager onChange={refresh} />
+      </div>
+      <div className="absolute top-4 left-4 z-10 text-[11px] text-muted-foreground bg-card/70 border border-white/10 rounded-lg px-2.5 py-1.5 backdrop-blur">
+        Drag nodes to arrange · click a node for details
+      </div>
       <Legend />
       <DeviceDrawer deviceId={selected} open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>

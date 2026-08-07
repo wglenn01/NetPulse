@@ -91,7 +91,7 @@
 .react-flow__controls-button:hover { background: hsl(222 22% 16%); }
 .react-flow__controls-button svg { fill: hsl(210 20% 85%); }
 
-@keyframes edgeDash { to { stroke-dashoffset: -1000; } }
+@keyframes edgeDash { to { stroke-dashoffset: -168; } }
 .np-edge { fill: none; stroke: rgba(169,182,198,0.30); stroke-width: 2; }
 .np-edge.edge--idle { stroke: rgba(169,182,198,0.22); }
 .np-edge.edge--active {
