@@ -101,6 +101,37 @@ def _parse_interfaces(iftable, ifx):
     return ifaces
 
 
+async def snmp_probe(ip, port, community, timeout=2, retries=1):
+    """Lightweight reachability probe: a single SNMP v2c GET of sysDescr/sysName.
+
+    Much faster and more robust than a full poll (no interface walks) — ideal for
+    a pre-flight check when adding a device. Returns sysinfo dict on success,
+    raises on any failure. Always closes the dispatcher socket.
+    """
+    dispatcher = SnmpDispatcher()
+    try:
+        target = await UdpTransportTarget.create((ip, int(port)), timeout=timeout, retries=retries)
+        errI, errS, errIdx, varBinds = await get_cmd(
+            dispatcher, CommunityData(community, mpModel=1), target,
+            ObjectType(ObjectIdentity(SYS["descr"])),
+            ObjectType(ObjectIdentity(SYS["name"])),
+        )
+        if errI:
+            raise RuntimeError(str(errI))
+        if errS:
+            raise RuntimeError(errS.prettyPrint())
+        vals = {str(vb[0]): vb[1] for vb in varBinds}
+        return {
+            "descr": str(vals.get(SYS["descr"], "")),
+            "name": str(vals.get(SYS["name"], "")),
+        }
+    finally:
+        try:
+            dispatcher.close()
+        except Exception:
+            pass
+
+
 async def poll_snmp(ip, port, community, timeout=2, retries=1):
     """Return {'sysinfo': {...}, 'interfaces': [...]} or raise on failure.
 

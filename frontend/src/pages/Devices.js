@@ -19,7 +19,15 @@ const ROLES = ['router', 'switch', 'ap', 'backhaul', 'cpe', 'device'];
 
 // Normalize an Axios error into { title, message, canForce } for display.
 function parseApiError(e, fallback) {
-  const d = e?.response?.data?.detail;
+  // No HTTP response at all -> network error, timeout, CORS, or API unreachable.
+  if (!e?.response) {
+    const net = e?.code === 'ECONNABORTED'
+      ? 'The request timed out before the server replied.'
+      : 'Could not reach the NetPulse API (network error). Check that the backend is running and reachable.';
+    return { title: 'Cannot reach server', message: net, canForce: false };
+  }
+  const { status, data } = e.response;
+  const d = data?.detail;
   if (d && typeof d === 'object') {
     return {
       title: d.title || 'Could not add device',
@@ -27,7 +35,15 @@ function parseApiError(e, fallback) {
       canForce: !!d.can_force,
     };
   }
-  return { title: 'Could not add device', message: (typeof d === 'string' && d) || fallback, canForce: false };
+  if (typeof d === 'string' && d) {
+    return { title: 'Could not add device', message: d, canForce: false };
+  }
+  // Response present but no JSON detail (e.g. 500/502/504 HTML from a proxy).
+  return {
+    title: `Server error (HTTP ${status})`,
+    message: `${fallback} The server returned an unexpected ${status} response. You can try "Add anyway" to skip the reachability check.`,
+    canForce: status >= 500,
+  };
 }
 
 function AddDeviceDialog({ onAdded }) {

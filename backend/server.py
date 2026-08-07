@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from db import (db, client, serialize, now_utc, ensure_indexes, ensure_defaults,
                 get_settings, DEMO_MODE)
-from snmp_engine import poll_snmp, icmp_ping, fingerprint_vendor, guess_role
+from snmp_engine import poll_snmp, snmp_probe, icmp_ping, fingerprint_vendor, guess_role
 from poller import start_poller
 from demo_network import start_snmpsim, stop_snmpsim, seed_demo
 from alerting import _build_embed, send_discord
@@ -222,40 +222,53 @@ async def list_devices():
 
 
 async def _preflight_device(ip: str, port: int, community: str, timeout: int = 2):
-    """Verify a device is reachable before adding it.
+    """Verify a device is reachable before adding it — SNMP-first.
 
-    Runs ICMP first, then an SNMP v2c GET. Raises HTTPException(400) with a
-    structured, human-readable detail explaining exactly what failed so the
-    operator knows how to fix it. Returns the SNMP sysinfo on success.
+    A device we intend to monitor over SNMP is "reachable" if it answers an SNMP
+    v2c GET, EVEN IF it blocks ICMP/ping (very common on routers/firewalls). So we
+    probe SNMP first; only if that fails do we ping to produce a precise diagnostic:
+      - SNMP ok                      -> success (return sysinfo)
+      - SNMP fails, ICMP ok          -> "SNMP query failed" (community/port/v2c)
+      - SNMP fails, ICMP fails        -> "Host unreachable"
+    Raises HTTPException(400) with a structured, human-readable detail on failure.
     """
-    icmp = await icmp_ping(ip, count=2, timeout=1)
-    if not icmp.get("alive"):
-        raise HTTPException(400, {
-            "code": "icmp_unreachable",
-            "title": "Host unreachable",
-            "message": (
-                f"No ICMP (ping) reply from {ip}. The device looks offline or is "
-                f"dropping ping. Check the IP address, power/cabling, VLAN/subnet, "
-                f"and any firewall that might block ICMP."
-            ),
-            "can_force": True,
-        })
+    snmp_err = None
     try:
-        snmp = await poll_snmp(ip, port, community, timeout=timeout, retries=1)
-    except Exception as ex:  # SNMP timeout / wrong community / v2c disabled
+        return await snmp_probe(ip, port, community, timeout=timeout, retries=0)
+    except Exception as ex:
+        snmp_err = str(ex) or ex.__class__.__name__
+
+    # SNMP failed — ping to distinguish "wrong SNMP" from "host down".
+    try:
+        icmp = await icmp_ping(ip, count=1, timeout=1)
+        pings = bool(icmp.get("alive"))
+    except Exception:
+        pings = False
+
+    if pings:
         raise HTTPException(400, {
             "code": "snmp_failed",
             "title": "SNMP query failed",
             "message": (
-                f"{ip} replies to ping but did not answer SNMP v2c on UDP port {port}. "
-                f"Verify SNMP is enabled on the device, SNMP v2c is allowed, the "
-                f"community string \"{community}\" is correct, and UDP {port} is not "
-                f"blocked by a firewall/ACL."
+                f"{ip} is reachable (ping OK) but did not answer SNMP v2c on UDP port {port}. "
+                f"Verify SNMP is enabled on the device, SNMP v2c is allowed, the community "
+                f"string \"{community}\" is correct, and UDP {port} is not blocked by a "
+                f"firewall/ACL (and that this server can route to the device)."
             ),
-            "detail": str(ex)[:200],
+            "detail": (snmp_err or "")[:200],
             "can_force": True,
         })
-    return snmp.get("sysinfo", {})
+    raise HTTPException(400, {
+        "code": "unreachable",
+        "title": "Device unreachable",
+        "message": (
+            f"{ip} did not respond to SNMP v2c (UDP {port}) or ICMP ping. The device looks "
+            f"offline or is not routable from this server. Check the IP, power/cabling, "
+            f"VLAN/subnet and that this server has a route to it."
+        ),
+        "detail": (snmp_err or "")[:200],
+        "can_force": True,
+    })
 
 
 @api.post("/devices")
@@ -301,11 +314,27 @@ async def create_device(body: DeviceCreate):
             "can_force": False,
         })
 
-    # --- pre-flight reachability (ICMP + SNMP v2c) ------------------------
+    # --- pre-flight reachability (SNMP v2c first, then ICMP diagnostic) ---
     if not force:
         settings = await get_settings()
         timeout = int(settings.get("snmp_timeout", 2) or 2)
-        await _preflight_device(dev["ip"], port, dev["community"], timeout=timeout)
+        try:
+            await _preflight_device(dev["ip"], port, dev["community"], timeout=timeout)
+        except HTTPException:
+            raise
+        except Exception as ex:  # never leak a bare 500 to the modal
+            logger.exception("Pre-flight crashed for %s", dev["ip"])
+            raise HTTPException(400, {
+                "code": "preflight_error",
+                "title": "Reachability check error",
+                "message": (
+                    f"The reachability check for {dev['ip']} could not complete on the server "
+                    f"({ex.__class__.__name__}). You can add the device anyway and it will be "
+                    f"polled on the next cycle."
+                ),
+                "detail": str(ex)[:200],
+                "can_force": True,
+            })
 
     dev["id"] = str(uuid.uuid4())
     dev["is_demo"] = False
