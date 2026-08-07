@@ -14,7 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Tag, Tags, ArrowLeftRight, Cable } from 'lucide-react';
+import { Tag, Tags, ArrowLeftRight, Cable, Tv } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const nodeTypes = { device: DeviceNode };
 const edgeTypes = { traffic: TrafficEdge };
@@ -116,6 +117,7 @@ function ConnectConfirm({ pending, nodeMap, onClose, onCreated }) {
 
 function TopologyInner() {
   const { data, refresh } = usePoll('/topology', 4000);
+  const navigate = useNavigate();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selected, setSelected] = React.useState(null);
@@ -209,6 +211,13 @@ function TopologyInner() {
         >
           {showLabels ? <Tag size={16} className="mr-1.5" /> : <Tags size={16} className="mr-1.5" />}
           Link Labels
+        </Button>
+        <Button
+          data-testid="open-noc-map-button"
+          onClick={() => navigate('/tv?view=map')}
+          className="backdrop-blur border bg-card/90 border-border text-foreground hover:bg-white/10"
+        >
+          <Tv size={16} className="mr-1.5" /> NOC Map
         </Button>
         <LinkManager onChange={refresh} />
       </div>

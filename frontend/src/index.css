@@ -143,6 +143,30 @@
 @keyframes pulseDot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.85); } }
 .pulse-dot { animation: pulseDot 1.6s ease-in-out infinite; }
 
+/* ===== NOC critical-alarm screen flash ===== */
+@keyframes nocFlash {
+  0%   { opacity: 0; }
+  12%  { opacity: 0.55; }
+  24%  { opacity: 0.08; }
+  40%  { opacity: 0.5; }
+  56%  { opacity: 0.06; }
+  72%  { opacity: 0.42; }
+  100% { opacity: 0; }
+}
+.noc-flash {
+  position: fixed; inset: 0; z-index: 45; pointer-events: none;
+  background:
+    radial-gradient(120% 120% at 50% 50%, transparent 40%, hsl(var(--status-crit) / 0.28) 100%),
+    hsl(var(--status-crit) / 0.14);
+  box-shadow: inset 0 0 180px hsl(var(--status-crit) / 0.55);
+  animation: nocFlash 1.4s ease-out 1 both;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* photosensitivity-safe: single gentle fade, no strobing */
+  @keyframes nocFlash { 0% { opacity: 0; } 30% { opacity: 0.30; } 100% { opacity: 0; } }
+  .noc-flash { animation-duration: 1.6s; }
+}
+
 /* ===== React Flow (topology) ===== */
 .react-flow__pane {
   background:

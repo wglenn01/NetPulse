@@ -1,22 +1,22 @@
 [
   {
-    "content": "Phase A: Futuristic Console/HUD Redesign - COMPLETE",
+    "content": "F-CSS: .noc-flash keyframes overlay (+ reduced-motion safe) - COMPLETE",
     "status": "completed"
   },
   {
-    "content": "Phase B: Link Labels (port names + speed) + toggle - COMPLETE",
+    "content": "F2-NocMap: read-only full-screen NocMap component - COMPLETE",
     "status": "completed"
   },
   {
-    "content": "Phase C: Drag-to-Connect with confirm dialog - COMPLETE",
+    "content": "F1+F2-NocMode: Panels/Map toggle (?view=map) + Alarm toggle + WebAudio chime + new-critical detection + flash overlay - COMPLETE",
     "status": "completed"
   },
   {
-    "content": "Phase D: Vendor APIs framework + Settings + simulated enrichment - COMPLETE",
+    "content": "F2-Topology: 'NOC Map' launch button (/tv?view=map) - COMPLETE",
     "status": "completed"
   },
   {
-    "content": "Phase E: End-to-end testing (100% backend 38/38 + frontend, 0 bugs) - COMPLETE",
+    "content": "F-verify: compile + screenshots + deterministic flash/chime test (fired 5.1s, no false seed alarm, pointer-events safe) + debug endpoints removed - COMPLETE",
     "status": "completed"
   }
 ]
