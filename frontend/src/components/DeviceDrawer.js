@@ -5,7 +5,73 @@ import { usePoll } from '@/lib/api';
 import { VendorBadge } from '@/components/VendorBadge';
 import { StatusDot } from '@/components/StatusDot';
 import { fmtBps, fmtUptime, utilColor, ROLE_LABEL } from '@/lib/format';
-import { ArrowDownRight, ArrowUpRight, Clock, MapPin, Cpu } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Clock, MapPin, Cpu, Plug } from 'lucide-react';
+
+const ENRICH_STATUS = {
+  ok: 'hsl(var(--status-ok))', warn: 'hsl(var(--status-warn))',
+  crit: 'hsl(var(--status-crit))',
+};
+
+function EnrichmentPanel({ enrichment }) {
+  if (!enrichment) return null;
+  const { integration, available, simulated, reason, sections = [] } = enrichment;
+
+  return (
+    <div data-testid="device-enrichment-panel">
+      <div className="flex items-center justify-between mb-2">
+        <div className="hud-label flex items-center gap-1.5"><Plug size={12} className="text-primary" /> Vendor Enrichment</div>
+        {simulated && (
+          <span className="text-[9px] font-mono uppercase tracking-[0.14em] rounded-full border border-accent/30 bg-accent/10 text-accent px-2 py-0.5" data-testid="enrichment-simulated-badge">Simulated · Preview</span>
+        )}
+      </div>
+      {integration && <div className="text-[11px] font-mono text-muted-foreground mb-2">{integration}</div>}
+
+      {!available ? (
+        <div className="rounded-lg bg-white/[0.02] border border-border px-3 py-3 text-xs text-muted-foreground">{reason || 'No enrichment available.'}</div>
+      ) : (
+        <div className="space-y-3">
+          {sections.map((s, si) => (
+            <div key={si} className="rounded-lg bg-white/[0.02] border border-primary/10 p-3">
+              <div className="hud-label !text-[10px] mb-2">{s.title}</div>
+              {s.type === 'metrics' && (
+                <div className="grid grid-cols-2 gap-2">
+                  {s.items.map((it, ii) => (
+                    <div key={ii} className="flex items-center justify-between gap-2 rounded-md bg-white/[0.02] px-2 py-1.5">
+                      <span className="text-[11px] text-muted-foreground truncate">{it.label}</span>
+                      <span className="text-[11px] font-mono tabular flex items-center gap-1.5 shrink-0" style={{ color: ENRICH_STATUS[it.status] || 'hsl(var(--foreground))' }}>
+                        {it.status && ENRICH_STATUS[it.status] && <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: ENRICH_STATUS[it.status] }} />}
+                        {it.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {s.type === 'table' && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[11px] font-mono">
+                    <thead>
+                      <tr className="text-muted-foreground [&>th]:text-left [&>th]:font-normal [&>th]:pb-1">
+                        {s.columns.map((c) => <th key={c}>{c}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {s.rows.map((r, ri) => (
+                        <tr key={ri} className="[&>td]:py-0.5 border-t border-border/60">
+                          {s.columns.map((c) => <td key={c} className="pr-2 whitespace-nowrap">{r[c]}</td>)}
+                        </tr>
+                      ))}
+                      {s.rows.length === 0 && <tr><td colSpan={s.columns.length} className="text-muted-foreground py-2">none</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function OperBadge({ oper, admin }) {
   const up = oper === 1;
@@ -17,6 +83,7 @@ function OperBadge({ oper, admin }) {
 export function DeviceDrawer({ deviceId, open, onOpenChange }) {
   const { data: device } = usePoll(open && deviceId ? `/devices/${deviceId}` : null, 5000);
   const { data: metrics } = usePoll(open && deviceId ? `/metrics/device/${deviceId}?minutes=20` : null, 5000);
+  const { data: enrichment } = usePoll(open && deviceId ? `/devices/${deviceId}/enrichment` : null, 15000);
   const st = device?.state || {};
   const sysinfo = st.sysinfo || {};
   const interfaces = (st.interfaces || []).slice().sort((a, b) => (b.util || 0) - (a.util || 0));
@@ -51,16 +118,16 @@ export function DeviceDrawer({ deviceId, open, onOpenChange }) {
             <div className="p-5 space-y-5">
               {/* status row */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
-                  <div className="text-[11px] text-muted-foreground">Latency</div>
-                  <div className="text-lg font-semibold tabular">{st.latency_ms != null ? `${st.latency_ms} ms` : '—'}</div>
+                <div className="rounded-lg bg-white/[0.03] border border-primary/10 p-3">
+                  <div className="hud-label">Latency</div>
+                  <div className="text-lg font-mono font-semibold tabular">{st.latency_ms != null ? `${st.latency_ms} ms` : '—'}</div>
                 </div>
-                <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
-                  <div className="text-[11px] text-muted-foreground">Packet Loss</div>
-                  <div className="text-lg font-semibold tabular">{st.loss_pct != null ? `${st.loss_pct}%` : '—'}</div>
+                <div className="rounded-lg bg-white/[0.03] border border-primary/10 p-3">
+                  <div className="hud-label">Packet Loss</div>
+                  <div className="text-lg font-mono font-semibold tabular">{st.loss_pct != null ? `${st.loss_pct}%` : '—'}</div>
                 </div>
-                <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
-                  <div className="text-[11px] text-muted-foreground">SNMP</div>
+                <div className="rounded-lg bg-white/[0.03] border border-primary/10 p-3">
+                  <div className="hud-label">SNMP</div>
                   <div className="text-lg font-semibold" style={{ color: st.snmp_ok ? 'hsl(var(--status-ok))' : 'hsl(var(--status-crit))' }}>
                     {st.snmp_ok ? 'OK' : 'n/a'}
                   </div>
@@ -77,7 +144,7 @@ export function DeviceDrawer({ deviceId, open, onOpenChange }) {
 
               {/* bandwidth chart */}
               <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
-                <div className="text-xs font-medium text-muted-foreground mb-2">Aggregate Throughput (Mbps)</div>
+                <div className="hud-label mb-2">Aggregate Throughput (Mbps)</div>
                 <ResponsiveContainer width="100%" height={150}>
                   <AreaChart data={chartData} margin={{ top: 4, right: 6, left: -18, bottom: 0 }}>
                     <defs>
@@ -96,7 +163,7 @@ export function DeviceDrawer({ deviceId, open, onOpenChange }) {
 
               {/* interfaces */}
               <div>
-                <div className="text-xs font-medium text-muted-foreground mb-2">Interfaces ({interfaces.length})</div>
+                <div className="hud-label mb-2">Interfaces ({interfaces.length})</div>
                 <div className="space-y-1.5">
                   {interfaces.map((i) => (
                     <div key={i.index} className="rounded-lg bg-white/[0.02] border border-white/5 px-3 py-2" data-testid={`iface-row-${i.name}`}>
@@ -119,6 +186,9 @@ export function DeviceDrawer({ deviceId, open, onOpenChange }) {
                   {interfaces.length === 0 && <div className="text-xs text-muted-foreground py-4 text-center">No interface data (device offline or SNMP unavailable)</div>}
                 </div>
               </div>
+
+              {/* vendor API enrichment */}
+              <EnrichmentPanel enrichment={enrichment} />
             </div>
           </div>
         )}

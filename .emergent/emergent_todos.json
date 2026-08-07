@@ -1,38 +1,34 @@
 [
   {
-    "content": "Link labels: show port names + speed/util on each topology edge",
+    "content": "Phase A: Futuristic Console/HUD Redesign - COMPLETE",
+    "status": "completed"
+  },
+  {
+    "content": "Phase B: Link Labels (port names + speed) + toggle - COMPLETE",
+    "status": "completed"
+  },
+  {
+    "content": "Phase C: Drag-to-Connect with confirm dialog - COMPLETE",
+    "status": "completed"
+  },
+  {
+    "content": "Phase D1: vendor_api.py (config + simulated enrichment) - COMPLETE",
+    "status": "completed"
+  },
+  {
+    "content": "Phase D2: Backend endpoints (vendor-config GET/PUT/test, device enrichment) - COMPLETE",
+    "status": "completed"
+  },
+  {
+    "content": "Phase D3: Settings Vendor API Integrations section - COMPLETE",
+    "status": "completed"
+  },
+  {
+    "content": "Phase D4: DeviceDrawer enrichment panel (Simulated badge) - COMPLETE",
+    "status": "completed"
+  },
+  {
+    "content": "Phase E: End-to-end testing (testing_agent_v3) + fix any bugs",
     "status": "in_progress"
-  },
-  {
-    "content": "Backend: add per-node ports to /api/topology (needed for drag-to-connect handles)",
-    "status": "pending"
-  },
-  {
-    "content": "Design: get console/terminal-HUD (green) guidelines from design_agent",
-    "status": "pending"
-  },
-  {
-    "content": "Redesign: apply console/HUD theme across app (tokens + components)",
-    "status": "pending"
-  },
-  {
-    "content": "Drag-to-connect: per-port handles on nodes + onConnect creates link (ConnectionMode.Loose)",
-    "status": "pending"
-  },
-  {
-    "content": "Vendor APIs: integration playbook (MikroTik RouterOS/UniFi/cnMaestro)",
-    "status": "pending"
-  },
-  {
-    "content": "Vendor APIs backend: client framework + simulated enrichment + settings config + poller enrichment",
-    "status": "pending"
-  },
-  {
-    "content": "Vendor APIs frontend: device drawer vendor stats + Settings integrations UI",
-    "status": "pending"
-  },
-  {
-    "content": "E2E testing via testing_agent_v3",
-    "status": "pending"
   }
 ]

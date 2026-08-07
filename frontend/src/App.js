@@ -22,7 +22,7 @@ function App() {
     document.documentElement.classList.add('dark');
   }, []);
   return (
-    <div className="App">
+    <div className="App crt-shell">
       <BrowserRouter>
         <Routes>
           <Route path="/" element={L(Overview)} />
@@ -34,7 +34,7 @@ function App() {
           <Route path="/tv" element={<NocMode />} />
         </Routes>
       </BrowserRouter>
-      <Toaster position="top-right" richColors closeButton theme="dark" />
+      <Toaster position="top-right" closeButton theme="dark" />
     </div>
   );
 }

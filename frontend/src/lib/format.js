@@ -16,6 +16,17 @@ export function fmtBpsShort(bps) {
   return `${(n / 1e9).toFixed(1)}G`;
 }
 
+// Interface link speed (Mbps) -> compact label: 10000 -> "10G", 1000 -> "1G", 300 -> "300M"
+export function fmtSpeed(mbps) {
+  const n = Number(mbps || 0);
+  if (n <= 0) return '';
+  if (n >= 1000) {
+    const g = n / 1000;
+    return `${Number.isInteger(g) ? g : g.toFixed(1)}G`;
+  }
+  return `${n}M`;
+}
+
 export function fmtUptime(secs) {
   if (!secs) return '—';
   const d = Math.floor(secs / 86400);

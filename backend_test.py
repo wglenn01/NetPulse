@@ -147,19 +147,40 @@ class NetPulseAPITester:
         self.run_test("GET /api/devices/core-rtr-01", "GET", "devices/core-rtr-01", validate_fn=validate)
 
     def test_topology(self):
-        """Test GET /api/topology"""
+        """Test GET /api/topology - NEW: verify nodes have ports array and edges have interface details"""
         def validate(data):
             if 'nodes' not in data or 'edges' not in data:
                 return "Missing 'nodes' or 'edges' field"
             if len(data['nodes']) != 13:
                 return f"Expected 13 nodes, got {len(data['nodes'])}"
-            if len(data['edges']) != 12:
-                return f"Expected 12 edges, got {len(data['edges'])}"
+            if len(data['edges']) < 12:
+                return f"Expected at least 12 edges, got {len(data['edges'])}"
+            
+            # NEW: Check that nodes have 'ports' array
+            node = data['nodes'][0]
+            if 'ports' not in node:
+                return "Node missing 'ports' array"
+            if not isinstance(node['ports'], list):
+                return "Node 'ports' should be a list"
+            if len(node['ports']) > 0:
+                port = node['ports'][0]
+                required_port_fields = ['name', 'speed_mbps', 'oper', 'util']
+                for field in required_port_fields:
+                    if field not in port:
+                        return f"Port missing field: {field}"
+            
+            # NEW: Check that edges have interface details
+            edge = data['edges'][0]
+            required_edge_fields = ['a_ifname', 'b_ifname', 'speed_mbps', 'util', 'in_bps', 'out_bps', 'status']
+            for field in required_edge_fields:
+                if field not in edge:
+                    return f"Edge missing field: {field}"
+            
             # Check for status variety
             statuses = set(e['status'] for e in data['edges'])
-            if 'active' not in statuses:
-                return "No 'active' status found in edges"
-            # Note: 'down' and 'crit' may not always be present depending on live data
+            if 'active' not in statuses and 'idle' not in statuses:
+                return "No 'active' or 'idle' status found in edges"
+            
             return True
 
         self.run_test("GET /api/topology", "GET", "topology", validate_fn=validate)
@@ -453,6 +474,186 @@ class NetPulseAPITester:
             # DELETE dashboard
             self.run_test("DELETE /api/dashboards/{id}", "DELETE", f"dashboards/{dash_id}")
 
+    def test_links_crud(self):
+        """Test Links CRUD - NEW feature"""
+        # GET links
+        def validate_links(data):
+            if not isinstance(data, list):
+                return "Response should be a list"
+            # Should have demo links
+            if len(data) < 12:
+                return f"Expected at least 12 demo links, got {len(data)}"
+            return True
+
+        success, links = self.run_test("GET /api/links", "GET", "links", validate_fn=validate_links)
+
+        # CREATE link
+        create_data = {
+            "a_device": "core-rtr-01",
+            "a_ifname": "ether1",
+            "b_device": "dist-sw-01",
+            "b_ifname": "ether1",
+            "label": "Test Link"
+        }
+
+        def validate_create(data):
+            if 'id' not in data:
+                return "Created link missing 'id'"
+            if data.get('a_device') != 'core-rtr-01':
+                return f"Created link a_device should be 'core-rtr-01', got {data.get('a_device')}"
+            if data.get('label') != 'Test Link':
+                return f"Created link label should be 'Test Link', got {data.get('label')}"
+            return True
+
+        success, created = self.run_test("POST /api/links (create)", "POST", "links",
+                                        data=create_data, validate_fn=validate_create)
+
+        if success and created:
+            link_id = created.get('id')
+            
+            # DELETE link (cleanup)
+            self.run_test("DELETE /api/links/{id}", "DELETE", f"links/{link_id}")
+
+    def test_vendor_config(self):
+        """Test Vendor Config endpoints - NEW feature"""
+        # GET vendor-config
+        def validate_config(data):
+            if 'mikrotik' not in data:
+                return "Missing 'mikrotik' block"
+            if 'unifi' not in data:
+                return "Missing 'unifi' block"
+            if 'cambium' not in data:
+                return "Missing 'cambium' block"
+            
+            # Check mikrotik defaults
+            mt = data['mikrotik']
+            if mt.get('port') != 8728:
+                return f"MikroTik default port should be 8728, got {mt.get('port')}"
+            
+            # Check unifi defaults
+            uf = data['unifi']
+            if uf.get('port') != 443:
+                return f"UniFi default port should be 443, got {uf.get('port')}"
+            
+            return True
+
+        success, config = self.run_test("GET /api/vendor-config", "GET", "vendor-config", validate_fn=validate_config)
+
+        if success and config:
+            # PUT vendor-config (partial update)
+            update_data = {
+                "mikrotik": {
+                    "host": "192.168.1.1",
+                    "username": "admin"
+                }
+            }
+
+            def validate_update(data):
+                if data['mikrotik'].get('host') != '192.168.1.1':
+                    return f"MikroTik host should be '192.168.1.1', got {data['mikrotik'].get('host')}"
+                # Check that other fields are preserved
+                if data['mikrotik'].get('port') != 8728:
+                    return "MikroTik port should be preserved (8728)"
+                if 'unifi' not in data:
+                    return "UniFi block should be preserved"
+                return True
+
+            self.run_test("PUT /api/vendor-config (partial update)", "PUT", "vendor-config",
+                         data=update_data, validate_fn=validate_update)
+
+    def test_vendor_config_test(self):
+        """Test Vendor Config test endpoint - NEW feature"""
+        # Test MikroTik
+        def validate_mikrotik(data):
+            if not data.get('ok'):
+                return "Test should return ok:true"
+            if not data.get('simulated'):
+                return "Test should return simulated:true (preview mode)"
+            if 'message' not in data:
+                return "Missing 'message' field"
+            return True
+
+        self.run_test("POST /api/vendor-config/test (mikrotik)", "POST", "vendor-config/test",
+                     data={"vendor": "mikrotik"}, validate_fn=validate_mikrotik)
+
+        # Test UniFi
+        self.run_test("POST /api/vendor-config/test (unifi)", "POST", "vendor-config/test",
+                     data={"vendor": "unifi"}, validate_fn=validate_mikrotik)
+
+        # Test Cambium
+        self.run_test("POST /api/vendor-config/test (cambium)", "POST", "vendor-config/test",
+                     data={"vendor": "cambium"}, validate_fn=validate_mikrotik)
+
+        # Test invalid vendor (should return 400)
+        self.run_test("POST /api/vendor-config/test (invalid vendor)", "POST", "vendor-config/test",
+                     data={"vendor": "invalid"}, expected_status=400)
+
+    def test_device_enrichment(self):
+        """Test Device Enrichment endpoint - NEW feature"""
+        # Test MikroTik device (core-rtr-01)
+        def validate_mikrotik(data):
+            if data.get('vendor') != 'mikrotik':
+                return f"Expected vendor 'mikrotik', got {data.get('vendor')}"
+            if not data.get('available'):
+                return "Enrichment should be available for MikroTik"
+            if not data.get('simulated'):
+                return "Enrichment should be simulated (preview mode)"
+            if 'sections' not in data:
+                return "Missing 'sections' field"
+            if len(data['sections']) == 0:
+                return "Sections array is empty"
+            # Check first section has expected structure
+            section = data['sections'][0]
+            if 'title' not in section or 'type' not in section:
+                return "Section missing 'title' or 'type'"
+            return True
+
+        self.run_test("GET /api/devices/core-rtr-01/enrichment (MikroTik)", "GET", 
+                     "devices/core-rtr-01/enrichment", validate_fn=validate_mikrotik)
+
+        # Test Ubiquiti device (ap-north-01)
+        def validate_ubiquiti(data):
+            if data.get('vendor') != 'ubiquiti':
+                return f"Expected vendor 'ubiquiti', got {data.get('vendor')}"
+            if not data.get('available'):
+                return "Enrichment should be available for Ubiquiti"
+            if not data.get('simulated'):
+                return "Enrichment should be simulated (preview mode)"
+            if 'sections' not in data:
+                return "Missing 'sections' field"
+            return True
+
+        self.run_test("GET /api/devices/ap-north-01/enrichment (Ubiquiti)", "GET",
+                     "devices/ap-north-01/enrichment", validate_fn=validate_ubiquiti)
+
+        # Test Cambium device (ap-east-01)
+        def validate_cambium(data):
+            if data.get('vendor') != 'cambium':
+                return f"Expected vendor 'cambium', got {data.get('vendor')}"
+            if not data.get('available'):
+                return "Enrichment should be available for Cambium"
+            if not data.get('simulated'):
+                return "Enrichment should be simulated (preview mode)"
+            if 'sections' not in data:
+                return "Missing 'sections' field"
+            return True
+
+        self.run_test("GET /api/devices/ap-east-01/enrichment (Cambium)", "GET",
+                     "devices/ap-east-01/enrichment", validate_fn=validate_cambium)
+
+        # Test Mimosa device (bh-ridge-01) - should return available:false
+        def validate_mimosa(data):
+            if data.get('vendor') != 'mimosa':
+                return f"Expected vendor 'mimosa', got {data.get('vendor')}"
+            if data.get('available'):
+                return "Enrichment should NOT be available for Mimosa"
+            if 'reason' not in data:
+                return "Missing 'reason' field for unavailable enrichment"
+            return True
+
+        self.run_test("GET /api/devices/bh-ridge-01/enrichment (Mimosa - unavailable)", "GET",
+                     "devices/bh-ridge-01/enrichment", validate_fn=validate_mimosa)
+
     def run_all_tests(self):
         """Run all backend tests"""
         self.log("=" * 80)
@@ -491,6 +692,16 @@ class NetPulseAPITester:
 
         self.log("\n--- Testing Dashboards ---")
         self.test_dashboards()
+
+        self.log("\n--- Testing NEW Features: Links CRUD ---")
+        self.test_links_crud()
+
+        self.log("\n--- Testing NEW Features: Vendor Config ---")
+        self.test_vendor_config()
+        self.test_vendor_config_test()
+
+        self.log("\n--- Testing NEW Features: Device Enrichment ---")
+        self.test_device_enrichment()
 
         self.log("\n" + "=" * 80)
         self.log(f"Tests Complete: {self.tests_passed}/{self.tests_run} passed, {self.tests_failed} failed")

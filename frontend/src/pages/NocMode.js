@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { usePoll } from '@/lib/api';
-import { fmtBps, utilColor, severityColor, VENDOR_LABEL, vendorColor } from '@/lib/format';
+import { fmtBps, utilColor, severityColor, VENDOR_LABEL, vendorColor, REDUCED_MOTION } from '@/lib/format';
 import { X, Server, WifiOff, Bell, Gauge } from 'lucide-react';
 
 function Clock() {
@@ -13,9 +13,9 @@ function Clock() {
 
 function BigTile({ label, value, accent, Icon }) {
   return (
-    <div className="rounded-2xl bg-card border border-white/5 p-8 flex flex-col justify-between" style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}>
-      <div className="flex items-center justify-between"><span className="text-xl text-muted-foreground">{label}</span><Icon size={28} style={{ color: accent }} /></div>
-      <div className="text-6xl font-semibold tabular mt-4" style={{ color: accent }}>{value}</div>
+    <div className="rounded-2xl bg-card/80 border border-primary/15 p-8 flex flex-col justify-between hud-panel" style={{ boxShadow: '0 0 0 1px hsl(var(--primary) / 0.08), 0 12px 40px rgba(0,0,0,0.45)' }}>
+      <div className="flex items-center justify-between"><span className="hud-label !text-sm">{label}</span><Icon size={28} style={{ color: accent }} /></div>
+      <div className="text-6xl font-mono font-semibold tabular mt-4" style={{ color: accent, textShadow: `0 0 24px ${accent}55` }}>{value}</div>
     </div>
   );
 }
@@ -30,8 +30,8 @@ function PanelFleet({ ov }) {
         <BigTile label="Active Alerts" value={c.active_alerts ?? '—'} accent="hsl(var(--status-warn))" Icon={Bell} />
         <BigTile label="Aggregate" value={fmtBps(bw.total_bps)} accent="hsl(var(--traffic-active))" Icon={Gauge} />
       </div>
-      <div className="rounded-2xl bg-card border border-white/5 p-8">
-        <div className="text-xl text-muted-foreground mb-6">Fleet by Vendor</div>
+      <div className="rounded-2xl bg-card/80 border border-primary/15 p-8 hud-panel">
+        <div className="hud-label !text-base mb-6">Fleet by Vendor</div>
         <div className="grid grid-cols-4 gap-6">
           {Object.entries(vendors).map(([v, n]) => (
             <div key={v} className="flex items-center gap-4">
@@ -48,8 +48,8 @@ function PanelFleet({ ov }) {
 function PanelTop({ ov }) {
   const top = (ov?.top_interfaces || []).slice(0, 8);
   return (
-    <div className="h-full rounded-2xl bg-card border border-white/5 p-8">
-      <div className="text-2xl font-semibold mb-6">Top Interfaces by Utilization</div>
+    <div className="h-full rounded-2xl bg-card/80 border border-primary/15 p-8 hud-panel">
+      <div className="hud-label !text-lg mb-6 text-primary/80">Top Interfaces by Utilization</div>
       <div className="space-y-4">
         {top.map((t, i) => (
           <div key={i} className="flex items-center gap-6">
@@ -67,8 +67,8 @@ function PanelTop({ ov }) {
 function PanelAlerts({ alerts }) {
   const firing = (alerts || []).filter((a) => a.state === 'firing');
   return (
-    <div className="h-full rounded-2xl bg-card border border-white/5 p-8">
-      <div className="text-2xl font-semibold mb-6">Active Alerts</div>
+    <div className="h-full rounded-2xl bg-card/80 border border-primary/15 p-8 hud-panel">
+      <div className="hud-label !text-lg mb-6 text-primary/80">Active Alerts</div>
       {firing.length === 0 && <div className="text-3xl text-status-ok py-20 text-center">All systems healthy</div>}
       <div className="space-y-4">
         {firing.slice(0, 7).map((a) => (
@@ -105,13 +105,13 @@ export default function NocMode() {
 
   return (
     <div className="h-screen w-screen bg-background flex flex-col overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} data-testid="noc-mode">
-      <header className="h-20 shrink-0 flex items-center justify-between px-10 border-b border-white/5">
+      <header className="h-20 shrink-0 flex items-center justify-between px-10 border-b border-primary/15">
         <div className="flex items-center gap-4">
-          <div className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, hsl(190 95% 55%), hsl(198 85% 45%))' }}><Gauge size={22} className="text-background" /></div>
-          <div><div className="text-2xl font-semibold">NetPulse NOC</div><div className="text-sm text-muted-foreground">Network Operations Center</div></div>
+          <div className="h-11 w-11 rounded-xl flex items-center justify-center glow-primary" style={{ background: 'linear-gradient(135deg, hsl(142 92% 52%), hsl(160 88% 38%))' }}><Gauge size={22} className="text-background" /></div>
+          <div><div className="text-2xl font-semibold tracking-tight">NetPulse NOC</div><div className="hud-label">Network Operations Center</div></div>
         </div>
         <div className="flex items-center gap-8">
-          <div className="flex gap-6 text-lg">
+          <div className="flex gap-6 text-lg font-mono">
             <span className="text-status-ok tabular">● {ov?.counts?.up ?? '—'} up</span>
             <span className="text-status-crit tabular">● {ov?.counts?.down ?? '—'} down</span>
             <span className="text-status-warn tabular">● {ov?.counts?.active_alerts ?? '—'} alerts</span>
@@ -132,11 +132,11 @@ export default function NocMode() {
         </div>
       </div>
 
-      <div className="h-14 shrink-0 border-t border-white/5 bg-card/60 flex items-center overflow-hidden">
-        <div className="px-6 h-full flex items-center font-semibold text-sm border-r border-white/10 shrink-0" style={{ color: firing.length ? 'hsl(var(--status-crit))' : 'hsl(var(--status-ok))' }}>ALERT TICKER</div>
-        <motion.div className="flex gap-12 whitespace-nowrap px-8" animate={{ x: ['0%', '-50%'] }} transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}>
+      <div className="h-14 shrink-0 border-t border-primary/15 bg-card/60 flex items-center overflow-hidden">
+        <div className="px-6 h-full flex items-center hud-label !text-sm border-r border-primary/15 shrink-0" style={{ color: firing.length ? 'hsl(var(--status-crit))' : 'hsl(var(--status-ok))' }}>ALERT TICKER</div>
+        <motion.div className="flex gap-12 whitespace-nowrap px-8" animate={REDUCED_MOTION ? undefined : { x: ['0%', '-50%'] }} transition={REDUCED_MOTION ? undefined : { duration: 28, repeat: Infinity, ease: 'linear' }}>
           {[...tickerItems, ...tickerItems].map((a, i) => (
-            <span key={i} className="flex items-center gap-2 text-sm"><span className="w-2 h-2 rounded-full" style={{ background: severityColor(a.severity) }} />{a.message}{a.device_name ? ` — ${a.device_name}` : ''}</span>
+            <span key={i} className="flex items-center gap-2 text-sm font-mono"><span className="w-2 h-2 rounded-full" style={{ background: severityColor(a.severity) }} />{a.message}{a.device_name ? ` — ${a.device_name}` : ''}</span>
           ))}
         </motion.div>
       </div>

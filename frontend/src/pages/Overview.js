@@ -26,10 +26,10 @@ export default function Overview() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Top interfaces */}
-        <div className="lg:col-span-8 rounded-xl bg-card border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-          <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Top Interfaces by Utilization</h2>
-            <span className="text-xs text-muted-foreground">live</span>
+        <div className="lg:col-span-8 rounded-xl bg-card border border-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+            <h2 className="hud-label !text-xs text-primary/80">Top Interfaces by Utilization</h2>
+            <span className="hud-label flex items-center gap-1.5"><span className="pulse-dot inline-block w-1.5 h-1.5 rounded-full bg-status-ok" />live</span>
           </div>
           <div className="p-2">
             {top.length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">Collecting metrics…</div>}
@@ -59,8 +59,8 @@ export default function Overview() {
 
         {/* right column */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="rounded-xl bg-card border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-            <div className="px-5 py-4 border-b border-white/5"><h2 className="text-sm font-semibold">Active Alerts</h2></div>
+          <div className="rounded-xl bg-card border border-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+            <div className="px-5 py-4 border-b border-border"><h2 className="hud-label !text-xs text-primary/80">Active Alerts</h2></div>
             <div className="p-3 space-y-2 max-h-[360px] overflow-auto">
               {alerts.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">No active alerts — all clear</div>}
               {alerts.map((a) => (
@@ -75,8 +75,8 @@ export default function Overview() {
             </div>
           </div>
 
-          <div className="rounded-xl bg-card border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] p-5">
-            <h2 className="text-sm font-semibold mb-3">Fleet by Vendor</h2>
+          <div className="rounded-xl bg-card border border-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)] p-5">
+            <h2 className="hud-label !text-xs text-primary/80 mb-3">Fleet by Vendor</h2>
             <div className="space-y-2.5">
               {Object.entries(vendors).map(([v, n]) => (
                 <div key={v} className="flex items-center justify-between">

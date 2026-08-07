@@ -20,6 +20,8 @@ from snmp_engine import poll_snmp, icmp_ping, fingerprint_vendor, guess_role
 from poller import start_poller
 from demo_network import start_snmpsim, stop_snmpsim, seed_demo
 from alerting import _build_embed, send_discord
+from vendor_api import (get_vendor_config, save_vendor_config, build_enrichment,
+                        INTEGRATION_LABEL)
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -117,6 +119,16 @@ class DashboardBody(BaseModel):
 
 class TestDiscord(BaseModel):
     webhook_url: Optional[str] = None
+
+
+class VendorConfigUpdate(BaseModel):
+    mikrotik: Optional[dict] = None
+    unifi: Optional[dict] = None
+    cambium: Optional[dict] = None
+
+
+class VendorTest(BaseModel):
+    vendor: str
 
 
 # ------------------------------------------------------------------ helpers
@@ -255,6 +267,21 @@ async def delete_device(device_id: str):
     await db.metrics.delete_many({"device_id": device_id})
     await db.iface_metrics.delete_many({"device_id": device_id})
     return {"ok": True}
+
+
+@api.get("/devices/{device_id}/enrichment")
+async def device_enrichment(device_id: str):
+    """Vendor-API enrichment for a device.
+
+    NOTE: In the cloud preview this returns a SIMULATED feed (the environment cannot
+    reach private LAN controllers). On-prem, vendor_api.build_enrichment can be
+    pointed at the real RouterOS/UniFi/cnMaestro controllers without changing this
+    response contract.
+    """
+    d = await db.devices.find_one({"id": device_id}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Device not found")
+    return await build_enrichment(d)
 
 
 # ------------------------------------------------------------------ topology
@@ -493,6 +520,43 @@ async def test_discord(body: TestDiscord):
     if status == "no-webhook":
         raise HTTPException(400, "No Discord webhook URL configured")
     raise HTTPException(502, f"Discord webhook failed (status={status})")
+
+
+# ------------------------------------------------------------------ vendor APIs
+@api.get("/vendor-config")
+async def read_vendor_config():
+    return serialize(await get_vendor_config())
+
+
+@api.put("/vendor-config")
+async def write_vendor_config(body: VendorConfigUpdate):
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    return serialize(await save_vendor_config(patch))
+
+
+@api.post("/vendor-config/test")
+async def test_vendor_config(body: VendorTest):
+    """Validate a vendor integration.
+
+    In the preview we cannot reach private controllers, so we return a simulated
+    success. On-prem this would open a real session to the configured controller.
+    """
+    vendor = body.vendor
+    key = {"mikrotik": "mikrotik", "unifi": "unifi", "cambium": "cambium",
+           "ubiquiti": "unifi"}.get(vendor)
+    if not key:
+        raise HTTPException(400, f"Unknown vendor '{vendor}'")
+    cfg = await get_vendor_config()
+    block = cfg.get(key, {})
+    label = INTEGRATION_LABEL.get(
+        {"mikrotik": "mikrotik", "unifi": "ubiquiti", "cambium": "cambium"}[key], key)
+    return {
+        "ok": True,
+        "simulated": True,
+        "vendor": vendor,
+        "message": f"{label}: simulated connection OK. Live polling activates on-prem "
+                   f"once this controller ({block.get('host') or block.get('base_url') or 'not set'}) is reachable.",
+    }
 
 
 # ------------------------------------------------------------------ dashboards

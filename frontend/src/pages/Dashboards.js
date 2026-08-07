@@ -34,10 +34,10 @@ function StatWidget({ metric, ov }) {
   return (
     <div className="h-full p-4 flex flex-col justify-between">
       <div className="flex items-start justify-between">
-        <span className="text-sm text-muted-foreground">{meta.label}</span>
+        <span className="hud-label">{meta.label}</span>
         <Icon size={16} style={{ color: meta.accent }} />
       </div>
-      <div className="text-3xl font-semibold tabular" style={{ color: meta.accent }}>{val ?? '—'}</div>
+      <div className="text-3xl font-mono font-semibold tabular" style={{ color: meta.accent }}>{val ?? '—'}</div>
     </div>
   );
 }
@@ -46,7 +46,7 @@ function TopInterfacesWidget({ ov }) {
   const top = (ov?.top_interfaces || []).slice(0, 8);
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 py-2.5 border-b border-white/5 text-sm font-semibold">Top Interfaces</div>
+      <div className="px-4 py-2.5 border-b border-border hud-label !text-[10px] text-primary/80">Top Interfaces</div>
       <div className="flex-1 overflow-auto p-2 space-y-1">
         {top.map((t, i) => (
           <div key={i} className="flex items-center gap-3 px-2 py-1.5">
@@ -67,7 +67,7 @@ function AlertsWidget({ ov }) {
   const alerts = (ov?.recent_alerts || []).filter((a) => a.state === 'firing').slice(0, 8);
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 py-2.5 border-b border-white/5 text-sm font-semibold">Active Alerts</div>
+      <div className="px-4 py-2.5 border-b border-border hud-label !text-[10px] text-primary/80">Active Alerts</div>
       <div className="flex-1 overflow-auto p-2 space-y-1.5">
         {alerts.map((a) => (
           <div key={a.id} className="flex gap-2 px-2 py-1.5"><div className="w-1 rounded-full" style={{ background: severityColor(a.severity) }} /><div className="min-w-0"><div className="text-[12px] font-medium truncate">{a.message}</div><div className="text-[10px] text-muted-foreground">{a.device_name} · {timeAgo(a.last_seen)}</div></div></div>
@@ -80,7 +80,7 @@ function AlertsWidget({ ov }) {
 
 function Widget({ item, ov, editing, onRemove }) {
   return (
-    <div className="h-full rounded-xl bg-card border border-white/5 shadow-[0_8px_24px_rgba(0,0,0,0.3)] overflow-hidden relative">
+    <div className="h-full rounded-xl bg-card border border-primary/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)] overflow-hidden relative">
       {editing && (
         <button onClick={() => onRemove(item.i)} data-testid={`widget-remove-${item.i}`} className="absolute top-1.5 right-1.5 z-10 h-6 w-6 rounded-md bg-black/40 flex items-center justify-center text-muted-foreground hover:text-status-crit"><X size={13} /></button>
       )}

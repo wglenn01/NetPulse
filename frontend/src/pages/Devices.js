@@ -179,24 +179,24 @@ export default function Devices() {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card border border-white/5 overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+      <div className="rounded-xl bg-card border border-primary/10 overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.35)]" data-testid="devices-table">
         <table className="w-full text-sm">
-          <thead className="bg-white/[0.02] text-muted-foreground text-xs">
-            <tr className="border-b border-white/5">
-              <th className="text-left font-medium py-2.5 px-4">Device</th>
-              <th className="text-left font-medium py-2.5 px-3">Vendor</th>
-              <th className="text-left font-medium py-2.5 px-3">Role</th>
-              <th className="text-right font-medium py-2.5 px-3">Latency</th>
-              <th className="text-right font-medium py-2.5 px-3">Loss</th>
-              <th className="text-right font-medium py-2.5 px-3">Throughput</th>
-              <th className="text-right font-medium py-2.5 px-3">Ports</th>
-              <th className="text-right font-medium py-2.5 px-4"></th>
+          <thead className="bg-secondary/70 backdrop-blur text-muted-foreground">
+            <tr className="border-b border-border [&>th]:hud-label [&>th]:!text-[10px] [&>th]:py-3">
+              <th className="text-left px-4">Device</th>
+              <th className="text-left px-3">Vendor</th>
+              <th className="text-left px-3">Role</th>
+              <th className="text-right px-3">Latency</th>
+              <th className="text-right px-3">Loss</th>
+              <th className="text-right px-3">Throughput</th>
+              <th className="text-right px-3">Ports</th>
+              <th className="text-right px-4"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((d) => (
               <tr key={d.id} onClick={() => setDrawer(d.id)} data-testid={`device-row-${d.id}`}
-                  className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors duration-150 cursor-pointer">
+                  className="border-b border-border last:border-0 hover:bg-[hsl(var(--primary)/0.06)] transition-colors duration-150 cursor-pointer">
                 <td className="py-2.5 px-4">
                   <div className="flex items-center gap-2.5">
                     <StatusDot up={d.up} />

@@ -1,48 +1,59 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import '@xyflow/react/dist/style.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   NetPulse // CRT-HUD Green Console  (Medium CRT)
+   Primary = terminal green · Secondary/telemetry = cyan
+   ============================================================ */
 @layer base {
   :root {
-    --background: 222 35% 6%;
-    --foreground: 210 20% 96%;
-    --card: 222 30% 8%;
-    --card-foreground: 210 20% 96%;
-    --popover: 222 30% 8%;
-    --popover-foreground: 210 20% 96%;
-    --primary: 190 95% 55%;
-    --primary-foreground: 222 35% 6%;
-    --secondary: 222 22% 12%;
-    --secondary-foreground: 210 20% 96%;
-    --muted: 222 22% 12%;
-    --muted-foreground: 215 14% 68%;
-    --accent: 198 85% 60%;
-    --accent-foreground: 222 35% 6%;
+    --background: 210 30% 4%;
+    --foreground: 150 18% 92%;
+    --card: 210 26% 6%;
+    --card-foreground: 150 18% 92%;
+    --popover: 210 26% 6%;
+    --popover-foreground: 150 18% 92%;
+    --primary: 142 92% 52%;
+    --primary-foreground: 210 30% 4%;
+    --secondary: 210 18% 10%;
+    --secondary-foreground: 150 18% 92%;
+    --muted: 210 18% 10%;
+    --muted-foreground: 150 10% 68%;
+    --accent: 188 92% 52%;
+    --accent-foreground: 210 30% 4%;
     --destructive: 0 84% 58%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 222 18% 16%;
-    --input: 222 18% 16%;
-    --ring: 190 95% 55%;
+    --destructive-foreground: 210 30% 4%;
+    --border: 150 18% 18%;
+    --input: 150 18% 18%;
+    --ring: 142 92% 52%;
     --radius: 0.75rem;
-    --chart-1: 186 100% 55%;
-    --chart-2: 152 72% 48%;
+    --chart-1: 142 92% 52%;
+    --chart-2: 188 92% 52%;
     --chart-3: 38 92% 56%;
     --chart-4: 205 90% 60%;
     --chart-5: 0 84% 58%;
-    --status-ok: 152 72% 48%;
+    --status-ok: 142 92% 52%;
     --status-warn: 38 92% 56%;
     --status-crit: 0 84% 58%;
-    --status-down: 0 0% 55%;
-    --status-info: 205 90% 60%;
-    --traffic-active: 186 100% 55%;
-    --traffic-idle: 222 10% 35%;
-    --vendor-mikrotik: 12 85% 58%;
-    --vendor-ubiquiti: 205 90% 60%;
-    --vendor-cambium: 152 72% 48%;
-    --vendor-mimosa: 38 92% 56%;
+    --status-down: 210 6% 52%;
+    --status-info: 188 92% 52%;
+    --traffic-active: 188 92% 52%;
+    --traffic-idle: 210 10% 38%;
+    --vendor-mikrotik: 18 82% 56%;
+    --vendor-ubiquiti: 205 88% 58%;
+    --vendor-cambium: 142 70% 42%;
+    --vendor-mimosa: 38 88% 54%;
+    /* new HUD tokens */
+    --hud-grid: 150 30% 10%;
+    --hud-glow: 142 92% 52%;
+    --hud-glow-cyan: 188 92% 52%;
+    --tv-safe: 150 18% 94%;
+    --panel-tint: 142 92% 52%;
+    --panel-tint-2: 188 92% 52%;
   }
   .dark { color-scheme: dark; }
 }
@@ -56,18 +67,77 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-image:
-      radial-gradient(900px circle at 12% -5%, rgba(47,230,255,0.06), transparent 55%),
-      radial-gradient(800px circle at 95% 0%, rgba(46,212,122,0.05), transparent 60%);
+      radial-gradient(1000px circle at 14% -5%, hsl(142 92% 52% / 0.06), transparent 55%),
+      radial-gradient(820px circle at 92% 2%, hsl(188 92% 52% / 0.05), transparent 60%);
     background-attachment: fixed;
   }
   .tabular { font-variant-numeric: tabular-nums; }
 }
 
+/* ---- selection ---- */
+::selection { background: hsl(var(--primary) / 0.25); color: hsl(var(--foreground)); }
+
+/* ---- HUD helpers ---- */
+.hud-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+}
+.glow-primary { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.35), 0 0 18px hsl(var(--primary) / 0.18); }
+.glow-cyan { box-shadow: 0 0 0 1px hsl(var(--accent) / 0.30), 0 0 16px hsl(var(--accent) / 0.14); }
+
+/* corner-bracketed HUD panel */
+.hud-panel { position: relative; }
+.hud-panel::before, .hud-panel::after {
+  content: ''; position: absolute; width: 16px; height: 16px; pointer-events: none;
+}
+.hud-panel::before { left: 8px; top: 8px; border-left: 1px solid hsl(var(--primary) / 0.35); border-top: 1px solid hsl(var(--primary) / 0.35); }
+.hud-panel::after { right: 8px; bottom: 8px; border-right: 1px solid hsl(var(--accent) / 0.28); border-bottom: 1px solid hsl(var(--accent) / 0.28); }
+
+/* blinking terminal cursor accent */
+.cursor-block { position: relative; }
+.cursor-block::after {
+  content: ''; display: inline-block; width: 0.6ch; height: 1em; margin-left: 0.25ch;
+  background: hsl(var(--primary) / 0.8); vertical-align: -0.15em;
+  animation: blink 1.1s steps(1, end) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ============================================================
+   CRT / HUD global overlay  (medium intensity, pointer-events:none)
+   ============================================================ */
+.crt-shell { position: relative; min-height: 100%; }
+.crt-shell::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 40;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.16) 0px,
+      rgba(0,0,0,0.16) 1px,
+      rgba(0,0,0,0) 3px,
+      rgba(0,0,0,0) 4px
+    ),
+    linear-gradient(to right, hsl(142 90% 62% / 0.028) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(142 90% 62% / 0.024) 1px, transparent 1px),
+    radial-gradient(1200px circle at 50% 18%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.5) 100%);
+  background-size: auto, 26px 26px, 26px 26px, auto;
+  opacity: 0.5;
+}
+.crt-shell::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 41;
+  background: radial-gradient(900px circle at 18% 6%, hsl(142 92% 52% / 0.05), transparent 55%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .crt-shell::before { opacity: 0.32; }
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(222 18% 18%); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: hsl(222 18% 26%); background-clip: content-box; }
+::-webkit-scrollbar-thumb { background: hsl(150 14% 18%); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: hsl(142 40% 26%); background-clip: content-box; }
 
 /* Live poll pulse */
 @keyframes pulseDot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.85); } }
@@ -76,52 +146,76 @@
 /* ===== React Flow (topology) ===== */
 .react-flow__pane {
   background:
-    radial-gradient(900px circle at 20% 10%, rgba(47,230,255,0.06), transparent 55%),
-    radial-gradient(700px circle at 80% 0%, rgba(46,212,122,0.05), transparent 60%),
-    #070B14;
+    radial-gradient(900px circle at 20% 10%, hsl(142 92% 52% / 0.05), transparent 55%),
+    radial-gradient(720px circle at 82% 4%, hsl(188 92% 52% / 0.045), transparent 60%),
+    #050807;
 }
 .react-flow__attribution { display: none; }
 .react-flow__node { font-family: 'IBM Plex Sans', sans-serif; }
-.react-flow__handle { opacity: 0; pointer-events: none; }
+/* default handles hidden; per-port handles opt-in via .np-port-handle */
+.react-flow__handle { opacity: 0; pointer-events: none; width: 1px; height: 1px; min-width: 0; min-height: 0; border: 0; }
+.react-flow__handle.np-port-handle {
+  opacity: 0.35; pointer-events: all; width: 9px; height: 9px; min-width: 9px; min-height: 9px;
+  background: hsl(210 26% 8%); border: 1.5px solid hsl(var(--primary) / 0.7);
+  border-radius: 9999px; transition: box-shadow .15s, background-color .15s, border-color .15s, opacity .15s;
+}
+.react-flow__node:hover .react-flow__handle.np-port-handle { opacity: 1; }
+.react-flow__handle.np-port-handle:hover {
+  opacity: 1; background: hsl(var(--accent)); border-color: hsl(var(--accent));
+  box-shadow: 0 0 10px hsl(var(--accent) / 0.6);
+}
+.react-flow__handle.np-port-handle.connectingfrom,
+.react-flow__handle.np-port-handle.valid {
+  background: hsl(var(--primary)); border-color: hsl(var(--primary));
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.7);
+}
 .react-flow__controls { box-shadow: none; }
 .react-flow__controls-button {
-  background: hsl(222 30% 10%); border-bottom: 1px solid hsl(222 18% 16%);
-  color: hsl(210 20% 90%); border-radius: 6px; margin: 2px;
+  background: hsl(210 26% 8%); border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground)); border-radius: 6px; margin: 2px;
 }
-.react-flow__controls-button:hover { background: hsl(222 22% 16%); }
-.react-flow__controls-button svg { fill: hsl(210 20% 85%); }
+.react-flow__controls-button:hover { background: hsl(142 40% 14%); }
+.react-flow__controls-button svg { fill: hsl(var(--foreground)); }
+
+/* connection preview line while dragging a cable */
+.react-flow__connectionline .react-flow__connection-path,
+.react-flow__connection-path {
+  stroke: hsl(var(--accent)); stroke-width: 2.4; stroke-dasharray: 6 6;
+  filter: drop-shadow(0 0 6px hsl(var(--accent) / 0.5));
+}
 
 @keyframes edgeDash { to { stroke-dashoffset: -168; } }
-.np-edge { fill: none; stroke: rgba(169,182,198,0.30); stroke-width: 2; }
-.np-edge.edge--idle { stroke: rgba(169,182,198,0.22); }
+.np-edge { fill: none; stroke: hsl(150 10% 55% / 0.30); stroke-width: 2; }
+.np-edge.edge--idle { stroke: hsl(150 10% 55% / 0.22); }
 .np-edge.edge--active {
   stroke: hsl(var(--traffic-active)); stroke-width: 2.4; stroke-dasharray: 6 8;
   animation: edgeDash var(--edge-dash-speed, 1.6s) linear infinite;
-  filter: drop-shadow(0 0 5px rgba(34,240,214,0.45));
+  filter: drop-shadow(0 0 4px hsl(var(--traffic-active) / 0.5));
 }
 .np-edge.edge--warn {
   stroke: hsl(var(--status-warn)); stroke-width: 2.6; stroke-dasharray: 5 9;
   animation: edgeDash var(--edge-dash-speed, 1.4s) linear infinite;
-  filter: drop-shadow(0 0 5px rgba(255,176,32,0.45));
+  filter: drop-shadow(0 0 4px hsl(var(--status-warn) / 0.45));
 }
 .np-edge.edge--crit {
   stroke: hsl(var(--status-crit)); stroke-width: 3; stroke-dasharray: 4 8;
   animation: edgeDash var(--edge-dash-speed, 0.9s) linear infinite;
-  filter: drop-shadow(0 0 6px rgba(255,77,79,0.55));
+  filter: drop-shadow(0 0 5px hsl(var(--status-crit) / 0.5));
 }
 .np-edge.edge--down { stroke: hsl(var(--status-crit)); stroke-width: 2; stroke-dasharray: 2 7; opacity: .55; }
 
 @media (prefers-reduced-motion: reduce) {
   .np-edge { animation: none !important; }
   .pulse-dot { animation: none !important; }
+  .cursor-block::after { animation: none; opacity: 0.65; }
 }
 
 /* ===== react-grid-layout ===== */
-.react-grid-item.react-grid-placeholder { background: hsl(190 95% 55% / 0.18); border-radius: 12px; }
+.react-grid-item.react-grid-placeholder { background: hsl(var(--primary) / 0.16); border-radius: 12px; }
 .react-grid-item > .react-resizable-handle { opacity: 0; transition: opacity .15s; }
 .react-grid-item:hover > .react-resizable-handle { opacity: .6; }
 .react-resizable-handle { background-image: none; }
 .react-resizable-handle::after {
   content: ''; position: absolute; right: 5px; bottom: 5px; width: 8px; height: 8px;
-  border-right: 2px solid hsl(190 95% 60%); border-bottom: 2px solid hsl(190 95% 60%); border-radius: 1px;
+  border-right: 2px solid hsl(var(--primary)); border-bottom: 2px solid hsl(var(--primary)); border-radius: 1px;
 }
