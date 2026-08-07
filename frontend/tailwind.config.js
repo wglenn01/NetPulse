@@ -52,7 +52,28 @@ module.exports = {
           '3': 'hsl(var(--chart-3))',
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))'
+        },
+        status: {
+          ok: 'hsl(var(--status-ok))',
+          warn: 'hsl(var(--status-warn))',
+          crit: 'hsl(var(--status-crit))',
+          down: 'hsl(var(--status-down))',
+          info: 'hsl(var(--status-info))'
+        },
+        traffic: {
+          active: 'hsl(var(--traffic-active))',
+          idle: 'hsl(var(--traffic-idle))'
+        },
+        vendor: {
+          mikrotik: 'hsl(var(--vendor-mikrotik))',
+          ubiquiti: 'hsl(var(--vendor-ubiquiti))',
+          cambium: 'hsl(var(--vendor-cambium))',
+          mimosa: 'hsl(var(--vendor-mimosa))'
         }
+      },
+      fontFamily: {
+        sans: ["'IBM Plex Sans'", 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ["'JetBrains Mono'", 'ui-monospace', 'SFMono-Regular', 'monospace']
       },
       keyframes: {
         'accordion-down': {

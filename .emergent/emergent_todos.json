@@ -1,35 +1,31 @@
 [
   {
-    "content": "Phase 1: Install pysnmp 7.x, snmpsim, icmplib; verify environment",
+    "content": "Phase 1: Core POC (SNMP/ICMP/bandwidth/Discord) - 14/14 PASS",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Create snmpsim demo device profiles (.snmprec) with growing interface counters",
+    "content": "Phase 2: Design guidelines from design_agent",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Write test_core.py (SNMP GET/WALK, bandwidth delta, ICMP, Discord payload)",
+    "content": "Phase 2: Backend - models, snmpsim demo network, real poller, discovery, alerting (Discord), APIs",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Run POC and fix until all core checks pass (14/14 PASS)",
+    "content": "Phase 2: Frontend foundation - index.css tokens, layout, lib/api, shared components",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Get design guidelines from design_agent",
+    "content": "Phase 2: Frontend - Overview, Topology Map (animated dashed edges), Devices + detail drawer",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Frontend - Alerts + rules, Dashboards (drag/drop), NOC/TV mode, Settings",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Verify all pages render (screenshots)",
     "status": "in_progress"
-  },
-  {
-    "content": "Phase 2: Backend - models, snmpsim demo network, real poller engine, discovery, alerting (Discord), dashboards/NOC APIs",
-    "status": "pending"
-  },
-  {
-    "content": "Phase 2: Frontend - shell, Overview, Topology Map (animated dashed edges), Devices, Alerts, Dashboards, NOC/TV mode, Settings",
-    "status": "pending"
-  },
-  {
-    "content": "Phase 2: All user stories covered in development",
-    "status": "pending"
   },
   {
     "content": "Phase 2: End-to-End testing using testing_agent_v3",

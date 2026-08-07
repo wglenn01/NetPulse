@@ -1,8 +1,8 @@
 # plan.md — Network Visibility App (FastAPI + MongoDB + React)
 
 ## STATUS LOG
-- Phase 1 (Core POC): COMPLETE ✔ — `/app/poc/test_core.py` 14/14 checks pass against a real snmpsim v2c agent. Proven: SNMP GET (system group), SNMP WALK (ifTable+ifXTable), bandwidth delta (bps/util from HC counters), multi-vendor fingerprint (Mikrotik/Ubiquiti/Cambium/Mimosa), ICMP latency/loss (unprivileged), Discord webhook payload. Deps added: pysnmp 7.1.28, icmplib 3.0.4, snmpsim 1.2.2, pysmi 2.0.0, apscheduler.
-- Architecture decision: preview runs a real snmpsim "demo network" (127.0.0.1:1611, community=profile) polled by the REAL engine (highest fidelity). Down-device demo via unreachable RFC5737 IP (192.0.2.x). Same engine points at real gear on-prem via env config.
+- Phase 2 (Main App): BUILT ✔ — Full backend (SNMP/ICMP poller against real snmpsim demo network of 13 devices, topology, alerting+Discord, discovery, metrics, dashboards, settings) + full dark-themed frontend (Overview, animated Topology Map, Devices+discovery+drawer, Alerts+rules, drag/drop Dashboards, NOC/TV mode, Settings). All pages render, 0 compile errors. Next: automated E2E testing.
+- Phase 1 (Core POC): COMPLETE ✔ — `/app/poc/test_core.py` 14/14 checks pass against a real snmpsim v2c agent.
 
 ## 1) Objectives
 - Deliver a dark-themed network visibility app for Linux that monitors via **SNMP v2c + ICMP**, supports **auto-discovery + manual devices**, shows a **moveable topology map with animated dashed traffic edges**, provides **alerting (in-app + Discord webhook)**, and offers **custom dashboards + NOC/TV mode**.
