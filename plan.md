@@ -271,6 +271,13 @@
   - Frontend `parseApiError()` now distinguishes: no-response (network/timeout), non-JSON 5xx (offers Add-anyway), object detail, and string detail — no more misleading generic message.
 - Verified via curl: happy ~0.36s (200), reachable+wrong-SNMP ~4.5s→snmp_failed(400), fully-unreachable ~3.4s→unreachable(400).
 
+### Phase H.3 — Self-host 502 root cause: backend crash-loop (COMPLETED ✔)
+- User's self-hosted Docker backend was `Restarting (1)` → every `/api` call returned **502** (not an Add-Device bug).
+- Real cause (from `docker compose logs backend`): `ImportError: cannot import name '_QUERY_OPTIONS' from 'pymongo.cursor'`. `deploy/requirements.txt` pinned `motor==3.3.1` but left **pymongo unpinned**, so pip installed pymongo 4.9+ which dropped the symbol motor 3.3.1 imports → app couldn't load.
+- Fix: pinned **`pymongo==4.6.3`** in `deploy/requirements.txt` (matches the working preview: motor 3.3.1 + pymongo 4.6.3).
+- Also hardened `deploy/nginx.conf`: re-resolve `backend` via Docker DNS (127.0.0.11) using a variable in `proxy_pass` so a backend restart never causes persistent 502s; bumped read/send timeouts to 120s.
+- User action: Save to GitHub → on server `git pull` → `docker compose up -d --build` (requirements change forces backend image rebuild with correct pymongo).
+
 ## Pending / Next
 - **Topology Map "Tidy" button (P1, NOT STARTED):** one-click auto-layout arranging nodes by role (core → dist → AP → CPE) and clearing overlaps in `frontend/src/pages/Topology.js` (dagre or role-based heuristic). Requested by user earlier; deferred during deployment work.
 
