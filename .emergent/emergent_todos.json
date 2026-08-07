@@ -1,34 +1,18 @@
 [
   {
-    "content": "G1: DEMO_MODE env switch + prod defaults + gate snmpsim/seed + Layout footer - COMPLETE",
+    "content": "Backend: add pre-flight validation to POST /api/devices (IP format, duplicate IP, ICMP + SNMP reachability) with descriptive structured errors + optional force override",
     "status": "completed"
   },
   {
-    "content": "G2: Real vendor pollers (vendor_clients.py) - COMPLETE",
+    "content": "Frontend: parse backend error detail in AddDeviceDialog, show inline Alert with specific reason, loading state, and 'Add anyway' override button",
     "status": "completed"
   },
   {
-    "content": "G3: build_enrichment simulated(demo)/real(prod) w/ graceful degradation - COMPLETE",
+    "content": "Improve Discovery 'add' error parsing (minor consistency)",
     "status": "completed"
   },
   {
-    "content": "G4: requirements freeze + DEMO_MODE=true in preview .env - COMPLETE",
-    "status": "completed"
-  },
-  {
-    "content": "G5: Docker package (compose, Dockerfiles, nginx, curated reqs, env example, dockerignore) - COMPLETE",
-    "status": "completed"
-  },
-  {
-    "content": "G6: DEPLOYMENT.md - COMPLETE",
-    "status": "completed"
-  },
-  {
-    "content": "G7: Verify (compile, compose valid, prod graceful-degrade, preview still demo) - COMPLETE",
-    "status": "completed"
-  },
-  {
-    "content": "G8: GitHub push instructions via support_agent - COMPLETE",
+    "content": "Test backend error paths + frontend UI verification (screenshot)",
     "status": "completed"
   }
 ]

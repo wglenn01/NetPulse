@@ -11,31 +11,79 @@ import { VendorBadge } from '@/components/VendorBadge';
 import { DeviceDrawer } from '@/components/DeviceDrawer';
 import { fmtBps, timeAgo, ROLE_LABEL } from '@/lib/format';
 import { toast } from 'sonner';
-import { Plus, Radar, Search, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Radar, Search, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const VENDORS = ['mikrotik', 'ubiquiti', 'cambium', 'mimosa', 'generic'];
 const ROLES = ['router', 'switch', 'ap', 'backhaul', 'cpe', 'device'];
 
+// Normalize an Axios error into { title, message, canForce } for display.
+function parseApiError(e, fallback) {
+  const d = e?.response?.data?.detail;
+  if (d && typeof d === 'object') {
+    return {
+      title: d.title || 'Could not add device',
+      message: [d.message, d.detail].filter(Boolean).join(' \u2014 '),
+      canForce: !!d.can_force,
+    };
+  }
+  return { title: 'Could not add device', message: (typeof d === 'string' && d) || fallback, canForce: false };
+}
+
 function AddDeviceDialog({ onAdded }) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
   const [f, setF] = useState({ name: '', ip: '', vendor: 'mikrotik', role: 'router', community: 'public', snmp_port: 161, site: '' });
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const submit = async () => {
-    if (!f.name || !f.ip) { toast.error('Name and IP are required'); return; }
-    try {
-      await api.post('/devices', { ...f, snmp_port: Number(f.snmp_port) });
-      toast.success(`Added ${f.name}`);
-      setOpen(false); setF({ name: '', ip: '', vendor: 'mikrotik', role: 'router', community: 'public', snmp_port: 161, site: '' });
-      onAdded?.();
-    } catch (e) { toast.error('Failed to add device'); }
+  const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); if (err) setErr(null); };
+
+  const reset = () => {
+    setF({ name: '', ip: '', vendor: 'mikrotik', role: 'router', community: 'public', snmp_port: 161, site: '' });
+    setErr(null); setBusy(false);
   };
+  const onOpenChange = (v) => { setOpen(v); if (!v) reset(); };
+
+  const submit = async (force = false) => {
+    if (!f.name || !f.ip) { setErr({ title: 'Missing fields', message: 'Name and IP address are required.', canForce: false }); return; }
+    setBusy(true); setErr(null);
+    try {
+      await api.post('/devices', { ...f, snmp_port: Number(f.snmp_port), force });
+      toast.success(`Added ${f.name}`);
+      setOpen(false); reset();
+      onAdded?.();
+    } catch (e) {
+      setErr(parseApiError(e, 'Failed to add device. Please check the details and try again.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button data-testid="add-device-button" className="bg-primary text-primary-foreground hover:bg-primary/90"><Plus size={16} className="mr-1.5" />Add Device</Button>
       </DialogTrigger>
       <DialogContent className="bg-card border-white/10">
-        <DialogHeader><DialogTitle>Add Device</DialogTitle><DialogDescription>Monitor a device via SNMP v2c + ICMP.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Add Device</DialogTitle><DialogDescription>Monitor a device via SNMP v2c + ICMP. We verify reachability before adding.</DialogDescription></DialogHeader>
+        {err && (
+          <Alert variant="destructive" data-testid="add-device-error"
+                 className="border-[hsl(var(--status-crit)/0.5)] bg-[hsl(var(--status-crit)/0.10)] text-[hsl(var(--status-crit))]">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-mono uppercase tracking-[0.14em] text-xs">{err.title}</AlertTitle>
+            <AlertDescription className="text-[hsl(var(--foreground)/0.9)]">
+              {err.message}
+              {err.canForce && (
+                <div className="mt-2">
+                  <Button data-testid="add-device-force-button" size="sm" variant="secondary"
+                          className="border border-[hsl(var(--status-warn)/0.4)] text-[hsl(var(--status-warn))] hover:bg-[hsl(var(--status-warn)/0.10)]"
+                          disabled={busy} onClick={() => submit(true)}>
+                    Add anyway (skip check)
+                  </Button>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-1"><Label>Name</Label><Input data-testid="device-name-input" value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="core-rtr-02" /></div>
           <div className="col-span-1"><Label>IP Address</Label><Input data-testid="device-ip-input" value={f.ip} onChange={(e) => set('ip', e.target.value)} placeholder="10.0.0.1" /></div>
@@ -51,11 +99,16 @@ function AddDeviceDialog({ onAdded }) {
               <SelectContent>{ROLES.map((v) => <SelectItem key={v} value={v}>{ROLE_LABEL[v]}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div><Label>SNMP Community</Label><Input value={f.community} onChange={(e) => set('community', e.target.value)} /></div>
-          <div><Label>SNMP Port</Label><Input type="number" value={f.snmp_port} onChange={(e) => set('snmp_port', e.target.value)} /></div>
+          <div><Label>SNMP Community</Label><Input data-testid="device-community-input" value={f.community} onChange={(e) => set('community', e.target.value)} /></div>
+          <div><Label>SNMP Port</Label><Input data-testid="device-port-input" type="number" value={f.snmp_port} onChange={(e) => set('snmp_port', e.target.value)} /></div>
           <div className="col-span-2"><Label>Site (optional)</Label><Input value={f.site} onChange={(e) => set('site', e.target.value)} placeholder="Tower North" /></div>
         </div>
-        <DialogFooter><Button data-testid="submit-device-button" onClick={submit} className="bg-primary text-primary-foreground hover:bg-primary/90">Add Device</Button></DialogFooter>
+        <DialogFooter>
+          <Button data-testid="submit-device-button" onClick={() => submit(false)} disabled={busy}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90">
+            {busy ? <><Loader2 size={16} className="mr-1.5 animate-spin" />Verifying…</> : <>Add Device</>}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -83,12 +136,14 @@ function DiscoveryDialog({ onAdded }) {
     const chosen = (result?.found || []).filter((f) => sel[f.ip]);
     if (chosen.length === 0) { toast.error('Select at least one device'); return; }
     try {
-      await api.post('/discovery/add', {
+      const r = await api.post('/discovery/add', {
         devices: chosen.map((f) => ({ ip: f.ip, port: result.port, community: result.community, name: f.sys_name || f.ip, vendor: f.vendor, role: f.role })),
       });
-      toast.success(`Added ${chosen.length} device(s)`);
+      const added = r.data?.added?.length ?? chosen.length;
+      const skipped = r.data?.skipped?.length ?? 0;
+      toast.success(`Added ${added} device(s)${skipped ? ` \u00b7 ${skipped} already monitored` : ''}`);
       setOpen(false); setResult(null); onAdded?.();
-    } catch (e) { toast.error('Failed to add'); }
+    } catch (e) { toast.error(parseApiError(e, 'Failed to add selected devices').message); }
   };
 
   return (

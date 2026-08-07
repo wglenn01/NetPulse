@@ -242,3 +242,27 @@
 - `DEPLOYMENT.md`: full Ubuntu + Docker Compose guide (LAN/HTTP), first-run config, SNMP/vendor setup, ops/backups/troubleshooting.
 - Code transfer: via GitHub (Save to GitHub → clone on server).
 
+## Phase H — Add Device: Detailed Error Reporting (COMPLETED ✔, P0)
+**Goal (user request):** "When adding a device I need better error reporting as to why it failed to add."
+
+**Implementation (delivered):**
+- Backend `POST /api/devices` (`server.py`): full validation + **pre-flight reachability check** before insert, returning structured `HTTPException` detail `{code,title,message,can_force}`:
+  - `invalid_ip` (400) — bad IP format
+  - `validation` (400) — missing name
+  - `invalid_port` (400) — SNMP port out of range
+  - `duplicate` (409) — same IP+SNMP port already monitored (names the existing device)
+  - `icmp_unreachable` (400) — no ping reply (can_force)
+  - `snmp_failed` (400) — pings but SNMP v2c GET failed; names community/port to check (can_force)
+  - Added `force: bool` to `DeviceCreate` to skip the pre-flight and add anyway.
+  - `_preflight_device()` helper runs ICMP then SNMP v2c using the same engine as the poller; uses `snmp_timeout` from settings.
+  - `discovery/add` now dedupes existing IP+port and returns `{added, skipped}`.
+- Frontend `Devices.js` (`AddDeviceDialog`): `parseApiError()` reads `detail` (object or string); shows an inline themed destructive `Alert` with title + message; **"Add anyway (skip check)"** button when `can_force`; button shows a "Verifying…" spinner during the pre-flight. Discovery toast now reports added/skipped and parses errors.
+
+**Verification (met):**
+- Backend curl: all 8 paths verified (invalid IP, missing name, bad port, ICMP unreachable, SNMP failed, happy path vs demo sim, duplicate 409, force override 200).
+- Frontend screenshot: inline "HOST UNREACHABLE" alert + Add-anyway button render correctly in the CRT theme; test devices cleaned up.
+
+## Pending / Next
+- **Topology Map "Tidy" button (P1, NOT STARTED):** one-click auto-layout arranging nodes by role (core → dist → AP → CPE) and clearing overlaps in `frontend/src/pages/Topology.js` (dagre or role-based heuristic). Requested by user earlier; deferred during deployment work.
+
+

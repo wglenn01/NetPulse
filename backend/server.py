@@ -43,6 +43,8 @@ class DeviceCreate(BaseModel):
     x: float = 200
     y: float = 200
     enabled: bool = True
+    # When true, skip the ICMP/SNMP pre-flight reachability check and add anyway.
+    force: bool = False
 
 
 class DeviceUpdate(BaseModel):
@@ -219,9 +221,92 @@ async def list_devices():
     return out
 
 
+async def _preflight_device(ip: str, port: int, community: str, timeout: int = 2):
+    """Verify a device is reachable before adding it.
+
+    Runs ICMP first, then an SNMP v2c GET. Raises HTTPException(400) with a
+    structured, human-readable detail explaining exactly what failed so the
+    operator knows how to fix it. Returns the SNMP sysinfo on success.
+    """
+    icmp = await icmp_ping(ip, count=2, timeout=1)
+    if not icmp.get("alive"):
+        raise HTTPException(400, {
+            "code": "icmp_unreachable",
+            "title": "Host unreachable",
+            "message": (
+                f"No ICMP (ping) reply from {ip}. The device looks offline or is "
+                f"dropping ping. Check the IP address, power/cabling, VLAN/subnet, "
+                f"and any firewall that might block ICMP."
+            ),
+            "can_force": True,
+        })
+    try:
+        snmp = await poll_snmp(ip, port, community, timeout=timeout, retries=1)
+    except Exception as ex:  # SNMP timeout / wrong community / v2c disabled
+        raise HTTPException(400, {
+            "code": "snmp_failed",
+            "title": "SNMP query failed",
+            "message": (
+                f"{ip} replies to ping but did not answer SNMP v2c on UDP port {port}. "
+                f"Verify SNMP is enabled on the device, SNMP v2c is allowed, the "
+                f"community string \"{community}\" is correct, and UDP {port} is not "
+                f"blocked by a firewall/ACL."
+            ),
+            "detail": str(ex)[:200],
+            "can_force": True,
+        })
+    return snmp.get("sysinfo", {})
+
+
 @api.post("/devices")
 async def create_device(body: DeviceCreate):
     dev = body.model_dump()
+    force = bool(dev.pop("force", False))
+
+    # --- basic validation -------------------------------------------------
+    dev["name"] = (dev.get("name") or "").strip()
+    dev["ip"] = (dev.get("ip") or "").strip()
+    dev["community"] = (dev.get("community") or "public").strip()
+
+    if not dev["name"]:
+        raise HTTPException(400, {"code": "validation", "title": "Missing name",
+                                  "message": "Device name is required.", "can_force": False})
+    try:
+        ipaddress.ip_address(dev["ip"])
+    except ValueError:
+        raise HTTPException(400, {"code": "invalid_ip", "title": "Invalid IP address",
+                                  "message": f"\"{dev['ip'] or '(empty)'}\" is not a valid IPv4/IPv6 address.",
+                                  "can_force": False})
+
+    try:
+        port = int(dev.get("snmp_port") or 161)
+    except (TypeError, ValueError):
+        port = 0
+    if not (1 <= port <= 65535):
+        raise HTTPException(400, {"code": "invalid_port", "title": "Invalid SNMP port",
+                                  "message": "SNMP port must be a number between 1 and 65535.",
+                                  "can_force": False})
+    dev["snmp_port"] = port
+
+    # --- duplicate check --------------------------------------------------
+    dup = await db.devices.find_one({"ip": dev["ip"], "snmp_port": port}, {"_id": 0, "name": 1})
+    if dup:
+        raise HTTPException(409, {
+            "code": "duplicate",
+            "title": "Device already monitored",
+            "message": (
+                f"IP {dev['ip']} (SNMP port {port}) is already being monitored as "
+                f"\"{dup.get('name', 'unknown')}\". Delete or edit that device instead."
+            ),
+            "can_force": False,
+        })
+
+    # --- pre-flight reachability (ICMP + SNMP v2c) ------------------------
+    if not force:
+        settings = await get_settings()
+        timeout = int(settings.get("snmp_timeout", 2) or 2)
+        await _preflight_device(dev["ip"], port, dev["community"], timeout=timeout)
+
     dev["id"] = str(uuid.uuid4())
     dev["is_demo"] = False
     dev["created_at"] = now_utc()
@@ -427,9 +512,15 @@ async def discovery_run(body: DiscoveryRun):
 
 @api.post("/discovery/add")
 async def discovery_add(body: DiscoveryAdd):
-    added = []
+    existing = await db.devices.find({}, {"_id": 0, "ip": 1, "snmp_port": 1}).to_list(5000)
+    existing_set = {(e["ip"], e.get("snmp_port", 161)) for e in existing}
+    added, skipped = [], []
     base_x, base_y = 1320, 80
     for i, item in enumerate(body.devices):
+        if (item.ip, item.port) in existing_set:
+            skipped.append(item.ip)
+            continue
+        existing_set.add((item.ip, item.port))
         dev = {
             "id": str(uuid.uuid4()), "name": item.name, "ip": item.ip,
             "vendor": item.vendor, "role": item.role, "site": "Discovered",
@@ -439,7 +530,7 @@ async def discovery_add(body: DiscoveryAdd):
         }
         await db.devices.insert_one(dict(dev))
         added.append(serialize(dev))
-    return {"added": added}
+    return {"added": added, "skipped": skipped}
 
 
 # ------------------------------------------------------------------ alerts
