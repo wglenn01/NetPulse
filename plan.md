@@ -262,6 +262,15 @@
 - Backend curl: all 8 paths verified (invalid IP, missing name, bad port, ICMP unreachable, SNMP failed, happy path vs demo sim, duplicate 409, force override 200).
 - Frontend screenshot: inline "HOST UNREACHABLE" alert + Add-anyway button render correctly in the CRT theme; test devices cleaned up.
 
+### Phase H.2 — Robustness refinement (COMPLETED ✔) after user report of generic error on self-hosted Docker
+- Root cause (self-host): first version's pre-flight ran a **full SNMP interface walk** + required ICMP-first. On a real device with a large iface table the walk could overrun nginx's 65s proxy timeout → 504 HTML → browser had no JSON `detail` → generic fallback shown.
+- Fixes:
+  - Added `snmp_engine.snmp_probe()` — lightweight single GET of sysDescr/sysName (no walks). Happy path ~0.3s.
+  - Rewrote `_preflight_device()` to be **SNMP-first**: SNMP OK ⇒ accept (even if ICMP blocked); only if SNMP fails do we ping to classify `snmp_failed` (pings) vs `unreachable` (no ping). Timeouts trimmed (SNMP retries=0, ICMP count=1) ⇒ worst case ~3s.
+  - Wrapped pre-flight in `create_device` so unexpected errors return a clean 400 (`preflight_error`, can_force) instead of a bare 500.
+  - Frontend `parseApiError()` now distinguishes: no-response (network/timeout), non-JSON 5xx (offers Add-anyway), object detail, and string detail — no more misleading generic message.
+- Verified via curl: happy ~0.36s (200), reachable+wrong-SNMP ~4.5s→snmp_failed(400), fully-unreachable ~3.4s→unreachable(400).
+
 ## Pending / Next
 - **Topology Map "Tidy" button (P1, NOT STARTED):** one-click auto-layout arranging nodes by role (core → dist → AP → CPE) and clearing overlaps in `frontend/src/pages/Topology.js` (dagre or role-based heuristic). Requested by user earlier; deferred during deployment work.
 
