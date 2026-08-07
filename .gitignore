@@ -89,6 +89,9 @@ frontend/node_modules/.cache/default-development/1.pack
 .env
 .env.*
 *.env
+# Keep the deployment example env file (it matches .env.* above but MUST ship in the repo)
+!.env.docker.example
+!deploy/*.env.example
 credentials.json
 *.key
 .credentials
