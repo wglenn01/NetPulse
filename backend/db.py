@@ -11,6 +11,11 @@ MONGO_URL = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[os.environ["DB_NAME"]]
 
+# DEMO_MODE controls the built-in snmpsim demo network + simulated vendor feed.
+# Preview keeps this true; the Docker/production package sets DEMO_MODE=false so the
+# app runs clean (empty inventory) and polls your REAL devices + controllers.
+DEMO_MODE = os.environ.get("DEMO_MODE", "true").strip().lower() in ("1", "true", "yes", "on")
+
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
@@ -51,6 +56,14 @@ DEFAULT_SETTINGS = {
     "demo_mode": True,
     "tv_rotate_seconds": 15,
 }
+
+# Production defaults (DEMO_MODE=false): start clean and point discovery at a LAN
+# range on the standard SNMP port instead of the local snmpsim demo endpoints.
+DEFAULT_SETTINGS["demo_mode"] = DEMO_MODE
+if not DEMO_MODE:
+    DEFAULT_SETTINGS["discovery_range"] = "192.168.88.0/24"
+    DEFAULT_SETTINGS["discovery_port"] = 161
+    DEFAULT_SETTINGS["discovery_community"] = "public"
 
 DEFAULT_RULES = [
     {"id": "device_down", "type": "device_down", "name": "Device Down (ICMP)",

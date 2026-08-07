@@ -15,7 +15,7 @@ from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from db import (db, client, serialize, now_utc, ensure_indexes, ensure_defaults,
-                get_settings)
+                get_settings, DEMO_MODE)
 from snmp_engine import poll_snmp, icmp_ping, fingerprint_vendor, guess_role
 from poller import start_poller
 from demo_network import start_snmpsim, stop_snmpsim, seed_demo
@@ -612,18 +612,23 @@ app.add_middleware(
 async def on_startup():
     await ensure_indexes()
     await ensure_defaults()
-    settings = await get_settings()
-    if settings.get("demo_mode", True):
+    # keep the persisted flag in sync with the DEMO_MODE env so the UI/vendor feed
+    # reflect reality (demo vs live) regardless of a stale settings document.
+    await db.settings.update_one({"id": "global"}, {"$set": {"demo_mode": DEMO_MODE}})
+    if DEMO_MODE:
         try:
             start_snmpsim()
             await seed_demo()
         except Exception as e:
             logger.warning("Demo network init failed: %s", e)
+    else:
+        logger.info("Production mode: demo network disabled (polling real devices).")
     start_poller()
-    logger.info("NetPulse started")
+    logger.info("NetPulse started (demo_mode=%s)", DEMO_MODE)
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
-    stop_snmpsim()
+    if DEMO_MODE:
+        stop_snmpsim()
     client.close()

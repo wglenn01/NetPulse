@@ -1,0 +1,15 @@
+.git
+.gitignore
+**/node_modules
+frontend/build
+**/__pycache__
+**/*.pyc
+tests
+test_reports
+poc
+.emergent
+plan.md
+# never bake environment/secrets into images (compose provides them at runtime)
+backend/.env
+frontend/.env
+.env

@@ -28,7 +28,9 @@ function Metric({ label, value, color }) {
 
 export function Layout({ children }) {
   const { data: ov } = usePoll('/overview', 5000);
+  const { data: settings } = usePoll('/settings', 0);
   const c = ov?.counts || {};
+  const demo = settings?.demo_mode !== false;
   const location = useLocation();
   const page = NAV.find((n) => (n.end ? location.pathname === n.to : location.pathname.startsWith(n.to)));
 
@@ -62,8 +64,9 @@ export function Layout({ children }) {
             </NavLink>
           ))}
         </nav>
-        <div className="px-5 py-4 border-t border-border hud-label leading-relaxed">
-          SNMP v2c · ICMP<br />Demo network active
+        <div className="px-5 py-4 border-t border-border hud-label leading-relaxed flex items-center gap-2">
+          <span className="inline-block w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: demo ? 'hsl(var(--status-warn))' : 'hsl(var(--status-ok))' }} />
+          SNMP v2c · ICMP<br />{demo ? 'Demo network active' : 'Live monitoring'}
         </div>
       </aside>
 

@@ -233,3 +233,12 @@
   - SNMP dispatcher sockets always closed (no FD leaks)
   - snmpsim demo remains stable (HOME env preserved)
   - Alerts continue to dispatch to Discord correctly when configured
+
+## Phase G — Productionization + Self-host Packaging (COMPLETED ✔)
+- Added `DEMO_MODE` env switch (db.py). Preview keeps `DEMO_MODE=true` (13-device snmpsim demo + simulated vendor feed). Production package sets `DEMO_MODE=false` → no snmpsim, no demo seed, clean/empty inventory, prod discovery defaults (161).
+- Real vendor polling (BETA) in `backend/vendor_clients.py`: MikroTik (librouteros), UniFi (controller REST, classic + UniFi OS), Cambium (cnMaestro OAuth2). `build_enrichment` = simulated when demo, real when prod, with 9s timeout + graceful `available:false`+reason on any failure (verified never raises).
+- Layout footer shows Demo vs Live based on settings.demo_mode.
+- Docker Compose package: `docker-compose.yml` (mongo+backend+frontend), `deploy/backend.Dockerfile`, `deploy/frontend.Dockerfile` (nginx serves SPA + proxies `/api` same-origin so it's server-IP agnostic), `deploy/nginx.conf`, curated `deploy/requirements.txt` (excludes preview-only/private pkgs), `.env.docker.example`, `.dockerignore`. ICMP handled via `cap_add: NET_RAW` + `net.ipv4.ping_group_range` sysctl.
+- `DEPLOYMENT.md`: full Ubuntu + Docker Compose guide (LAN/HTTP), first-run config, SNMP/vendor setup, ops/backups/troubleshooting.
+- Code transfer: via GitHub (Save to GitHub → clone on server).
+

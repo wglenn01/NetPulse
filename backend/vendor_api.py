@@ -13,8 +13,9 @@ gentle time-based wobble so charts/values feel "live".
 import hashlib
 import math
 import time
+import asyncio
 
-from db import db, now_utc
+from db import db, now_utc, DEMO_MODE
 
 SUPPORTED_VENDORS = {"mikrotik", "ubiquiti", "cambium"}
 
@@ -275,14 +276,19 @@ _BUILDERS = {"mikrotik": _mikrotik, "ubiquiti": _unifi, "cambium": _cambium}
 
 
 async def build_enrichment(device: dict) -> dict:
-    """Return simulated vendor-API enrichment for a device (preview)."""
+    """Vendor-API enrichment for a device.
+
+    DEMO_MODE (preview): deterministic SIMULATED payloads.
+    Production: connects to the real device/controller via vendor_clients (BETA),
+    with a hard timeout; any failure degrades to available:false + a reason.
+    """
     vendor = device.get("vendor", "generic")
     envelope = {
         "device_id": device["id"],
         "vendor": vendor,
         "integration": INTEGRATION_LABEL.get(vendor),
         "available": False,
-        "simulated": True,
+        "simulated": DEMO_MODE,
         "polled_at": now_utc().isoformat(),
         "sections": [],
         "reason": None,
@@ -293,17 +299,30 @@ async def build_enrichment(device: dict) -> dict:
         return envelope
 
     cfg = await get_vendor_config()
-    settings = await db.settings.find_one({"id": "global"}, {"_id": 0}) or {}
-    demo_mode = settings.get("demo_mode", True)
     block = cfg.get(VENDOR_CONFIG_KEY[vendor], {})
     enabled = block.get("enabled", True)
 
-    # In preview/demo we always surface simulated data; on-prem this would gate on
-    # a live connection to the configured controller.
-    if not enabled and not demo_mode:
-        envelope["reason"] = f"{INTEGRATION_LABEL[vendor]} integration is disabled."
+    # --- Preview / demo: always surface simulated data ---
+    if DEMO_MODE:
+        envelope["available"] = True
+        envelope["simulated"] = True
+        envelope["sections"] = _BUILDERS[vendor](device)
         return envelope
 
-    envelope["available"] = True
-    envelope["sections"] = _BUILDERS[vendor](device)
+    # --- Production: live polling ---
+    if not enabled:
+        envelope["reason"] = f"{INTEGRATION_LABEL[vendor]} integration is disabled in Settings."
+        return envelope
+
+    envelope["simulated"] = False
+    try:
+        import vendor_clients
+        poller = vendor_clients.POLLERS[vendor]
+        sections = await asyncio.wait_for(asyncio.to_thread(poller, device, block), timeout=9.0)
+        envelope["available"] = True
+        envelope["sections"] = sections
+    except asyncio.TimeoutError:
+        envelope["reason"] = "Controller/device timed out — check reachability, port and firewall."
+    except Exception as e:  # never let a vendor failure break the request
+        envelope["reason"] = f"{type(e).__name__}: {str(e)[:180]}"
     return envelope

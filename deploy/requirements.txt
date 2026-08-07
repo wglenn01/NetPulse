@@ -1,0 +1,13 @@
+# Curated PRODUCTION dependencies for the Docker image.
+# (backend/requirements.txt is the full preview/dev freeze and is NOT used here —
+#  it contains dev-only / private packages that don't belong in production.)
+fastapi==0.110.1
+uvicorn[standard]==0.25.0
+pydantic==2.13.4
+motor==3.3.1
+python-dotenv==1.2.2
+python-multipart==0.0.32
+requests==2.34.2
+pysnmp==7.1.28
+icmplib==3.0.4
+librouteros==3.4.1
