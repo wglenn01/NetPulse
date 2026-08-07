@@ -1,0 +1,38 @@
+[
+  {
+    "content": "Phase 1: Install pysnmp 7.x, snmpsim, icmplib; verify environment",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Create snmpsim demo device profiles (.snmprec) with growing interface counters",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Write test_core.py (SNMP GET/WALK, bandwidth delta, ICMP, Discord payload)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Run POC and fix until all core checks pass (14/14 PASS)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Get design guidelines from design_agent",
+    "status": "in_progress"
+  },
+  {
+    "content": "Phase 2: Backend - models, snmpsim demo network, real poller engine, discovery, alerting (Discord), dashboards/NOC APIs",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Frontend - shell, Overview, Topology Map (animated dashed edges), Devices, Alerts, Dashboards, NOC/TV mode, Settings",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: All user stories covered in development",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: End-to-End testing using testing_agent_v3",
+    "status": "pending"
+  }
+]
