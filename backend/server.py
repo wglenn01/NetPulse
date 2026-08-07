@@ -277,6 +277,8 @@ async def topology():
             "total_in_bps": st.get("total_in_bps", 0), "total_out_bps": st.get("total_out_bps", 0),
             "iface_count": st.get("iface_count", 0), "iface_up": st.get("iface_up", 0),
             "sys_name": st.get("sysinfo", {}).get("name", ""),
+            "ports": [{"name": i["name"], "oper": i["oper"], "util": i.get("util", 0),
+                       "speed_mbps": i.get("speed_mbps", 0)} for i in st.get("interfaces", [])],
         })
 
     edges = []

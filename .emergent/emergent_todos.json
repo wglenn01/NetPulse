@@ -1,22 +1,38 @@
 [
   {
-    "content": "Phase 1: Core POC (SNMP/ICMP/bandwidth/Discord) - 14/14 PASS",
-    "status": "completed"
+    "content": "Link labels: show port names + speed/util on each topology edge",
+    "status": "in_progress"
   },
   {
-    "content": "Phase 2: Design guidelines from design_agent",
-    "status": "completed"
+    "content": "Backend: add per-node ports to /api/topology (needed for drag-to-connect handles)",
+    "status": "pending"
   },
   {
-    "content": "Phase 2: Backend - snmpsim demo network, real poller, discovery, alerting (Discord), APIs",
-    "status": "completed"
+    "content": "Design: get console/terminal-HUD (green) guidelines from design_agent",
+    "status": "pending"
   },
   {
-    "content": "Phase 2: Frontend - all pages (Overview, Topology, Devices, Alerts, Dashboards, NOC/TV, Settings)",
-    "status": "completed"
+    "content": "Redesign: apply console/HUD theme across app (tokens + components)",
+    "status": "pending"
   },
   {
-    "content": "Phase 2: End-to-End testing (25/25 backend, 100% frontend) + fix a11y warning",
-    "status": "completed"
+    "content": "Drag-to-connect: per-port handles on nodes + onConnect creates link (ConnectionMode.Loose)",
+    "status": "pending"
+  },
+  {
+    "content": "Vendor APIs: integration playbook (MikroTik RouterOS/UniFi/cnMaestro)",
+    "status": "pending"
+  },
+  {
+    "content": "Vendor APIs backend: client framework + simulated enrichment + settings config + poller enrichment",
+    "status": "pending"
+  },
+  {
+    "content": "Vendor APIs frontend: device drawer vendor stats + Settings integrations UI",
+    "status": "pending"
+  },
+  {
+    "content": "E2E testing via testing_agent_v3",
+    "status": "pending"
   }
 ]
