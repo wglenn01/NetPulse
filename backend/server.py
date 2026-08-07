@@ -432,7 +432,10 @@ async def topology():
         in_bps = iface.get("in_bps", 0)
         out_bps = iface.get("out_bps", 0)
         both_up = node_up.get(l["a_device"], False) and node_up.get(l["b_device"], False)
-        active = both_up and (in_bps + out_bps) > 500_000
+        # A link "animates" when it carries any real live traffic. 20 kbps (or >=1%
+        # utilization) filters out dead/near-idle links while still lighting up the
+        # low-throughput customer/backhaul links common on a WISP.
+        active = both_up and ((in_bps + out_bps) > 20_000 or util >= 1)
         if not both_up:
             status = "down"
         elif util >= util_thr:
