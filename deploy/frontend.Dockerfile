@@ -6,8 +6,16 @@ FROM node:20-alpine AS build
 WORKDIR /app
 ENV NODE_OPTIONS=--max-old-space-size=2048
 
-COPY frontend/package.json frontend/yarn.lock ./
-RUN yarn install --frozen-lockfile
+# Copy manifest first for better layer caching. yarn.lock is optional (the trailing
+# glob tolerates its absence) so the build succeeds whether or not a lockfile shipped.
+COPY frontend/package.json frontend/yarn.lock* ./
+# Use the lockfile when present (deterministic); otherwise resolve from package.json.
+RUN if [ -f yarn.lock ]; then \
+      yarn install --frozen-lockfile --network-timeout 600000; \
+    else \
+      echo "yarn.lock not found - installing from package.json" && \
+      yarn install --network-timeout 600000; \
+    fi
 
 COPY frontend/ ./
 # Same-origin API: empty REACT_APP_BACKEND_URL => the app calls "/api" (proxied by nginx).
