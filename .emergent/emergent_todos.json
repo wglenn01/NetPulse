@@ -8,27 +8,15 @@
     "status": "completed"
   },
   {
-    "content": "Phase 2: Backend - models, snmpsim demo network, real poller, discovery, alerting (Discord), APIs",
+    "content": "Phase 2: Backend - snmpsim demo network, real poller, discovery, alerting (Discord), APIs",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Frontend foundation - index.css tokens, layout, lib/api, shared components",
+    "content": "Phase 2: Frontend - all pages (Overview, Topology, Devices, Alerts, Dashboards, NOC/TV, Settings)",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Frontend - Overview, Topology Map (animated dashed edges), Devices + detail drawer",
+    "content": "Phase 2: End-to-End testing (25/25 backend, 100% frontend) + fix a11y warning",
     "status": "completed"
-  },
-  {
-    "content": "Phase 2: Frontend - Alerts + rules, Dashboards (drag/drop), NOC/TV mode, Settings",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: Verify all pages render (screenshots)",
-    "status": "in_progress"
-  },
-  {
-    "content": "Phase 2: End-to-End testing using testing_agent_v3",
-    "status": "pending"
   }
 ]

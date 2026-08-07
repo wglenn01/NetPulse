@@ -30,14 +30,15 @@ export function DeviceDrawer({ deviceId, open, onOpenChange }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-[560px] bg-card border-white/10 overflow-y-auto p-0" data-testid="device-drawer">
+        <SheetTitle className="sr-only">Device details</SheetTitle>
         {device && (
           <div>
             <SheetHeader className="p-5 border-b border-white/5">
               <div className="flex items-center justify-between">
-                <SheetTitle className="flex items-center gap-2.5 text-lg">
+                <div className="flex items-center gap-2.5 text-lg font-semibold">
                   <StatusDot up={st.up} size={10} />
                   <span>{device.name}</span>
-                </SheetTitle>
+                </div>
                 <VendorBadge vendor={device.vendor} />
               </div>
               <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground pt-1">
