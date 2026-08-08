@@ -1,18 +1,22 @@
 [
   {
-    "content": "Backend: add pre-flight validation to POST /api/devices (IP format, duplicate IP, ICMP + SNMP reachability) with descriptive structured errors + optional force override",
+    "content": "Backend: include per-port in_bps/out_bps and persisted thrpt_iface in /api/topology nodes",
     "status": "completed"
   },
   {
-    "content": "Frontend: parse backend error detail in AddDeviceDialog, show inline Alert with specific reason, loading state, and 'Add anyway' override button",
+    "content": "Backend: add PATCH /api/devices/{id}/thrpt-iface to persist the chosen interface",
     "status": "completed"
   },
   {
-    "content": "Improve Discovery 'add' error parsing (minor consistency)",
+    "content": "Frontend DeviceNode: compute THRPT from selected interface (or aggregate) + compact interface Select (editable map only)",
     "status": "completed"
   },
   {
-    "content": "Test backend error paths + frontend UI verification (screenshot)",
+    "content": "Frontend Topology: inject onIfaceChange handler into nodes (optimistic update + persist + refresh)",
+    "status": "completed"
+  },
+  {
+    "content": "Test: curl PATCH + screenshot the node selector on the map",
     "status": "completed"
   }
 ]

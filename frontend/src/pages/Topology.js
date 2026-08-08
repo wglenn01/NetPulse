@@ -130,6 +130,18 @@ function TopologyInner() {
     [data]
   );
 
+  // Choose which interface's throughput a node's THRPT tile shows (persisted).
+  const onIfaceChange = useCallback((deviceId, value) => {
+    const iface = value === '__all__' ? null : value;
+    // optimistic update so the tile changes instantly, before the next poll
+    setNodes((nds) => nds.map((n) => (n.id === deviceId
+      ? { ...n, data: { ...n.data, thrpt_iface: iface } }
+      : n)));
+    api.patch(`/devices/${deviceId}/thrpt-iface`, { iface })
+      .then(() => refresh())
+      .catch(() => { toast.error('Failed to set interface'); refresh(); });
+  }, [setNodes, refresh]);
+
   useEffect(() => {
     if (!data) return;
     setNodes((prev) => {
@@ -138,7 +150,7 @@ function TopologyInner() {
         id: n.id,
         type: 'device',
         position: pos[n.id] || { x: n.x, y: n.y },
-        data: n,
+        data: { ...n, onIfaceChange: (v) => onIfaceChange(n.id, v) },
       }));
     });
     setEdges(
@@ -150,7 +162,7 @@ function TopologyInner() {
         data: { ...e, speed: REDUCED_MOTION ? '0s' : edgeSpeed(e.util), showLabels },
       }))
     );
-  }, [data, setNodes, setEdges, showLabels]);
+  }, [data, setNodes, setEdges, showLabels, onIfaceChange]);
 
   // keep edge label toggle live without waiting for the next poll
   useEffect(() => {

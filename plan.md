@@ -278,6 +278,14 @@
 - Also hardened `deploy/nginx.conf`: re-resolve `backend` via Docker DNS (127.0.0.11) using a variable in `proxy_pass` so a backend restart never causes persistent 502s; bumped read/send timeouts to 120s.
 - User action: Save to GitHub → on server `git pull` → `docker compose up -d --build` (requirements change forces backend image rebuild with correct pymongo).
 
+## Phase I — Topology THRPT: per-node interface selector (COMPLETED ✔)
+**User request:** on the topology map, select which interface a node's THRPT tile shows instead of the aggregate of all interfaces.
+- Backend (`server.py`): `/api/topology` nodes now include per-port `in_bps`/`out_bps` and the persisted `thrpt_iface`; new `PATCH /api/devices/{id}/thrpt-iface` ({iface|null}) stores the choice (null = aggregate).
+- Frontend `DeviceNode.js`: THRPT now reflects the selected interface (or aggregate); compact shadcn `Select` under RTT/THRPT lists the device's real ports + "All interfaces". Shown only on the editable map (`data.onIfaceChange`), so the read-only NOC wallboard hides the dropdown but still honors the saved selection. Small caption shows the chosen iface name.
+- Frontend `Topology.js`: injects `onIfaceChange(deviceId, value)` into each node — optimistic tile update, then PATCH + refresh.
+- Verified: curl PATCH set/reset; UI — core-rtr-01 THRPT switched 8.6G (all) → 1.8G (to-dist-1) and persisted; NOC map shows 0 editable selectors, no runtime errors. Threshold for animated "active" links also lowered to 20 kbps / ≥1% util (Phase H.4) so real low-traffic links animate.
+- Note: this is code (backend+frontend) — self-host must redeploy (`git pull` + `docker compose up -d --build`) to get it.
+
 ## Pending / Next
 - **Topology Map "Tidy" button (P1, NOT STARTED):** one-click auto-layout arranging nodes by role (core → dist → AP → CPE) and clearing overlaps in `frontend/src/pages/Topology.js` (dagre or role-based heuristic). Requested by user earlier; deferred during deployment work.
 

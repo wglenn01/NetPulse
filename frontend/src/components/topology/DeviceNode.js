@@ -2,10 +2,13 @@ import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Router, Server, Radio, Wifi, MonitorSmartphone, HelpCircle } from 'lucide-react';
 import { vendorColor, VENDOR_LABEL, fmtBpsShort } from '@/lib/format';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 const ROLE_ICON = {
   router: Router, switch: Server, ap: Wifi, backhaul: Radio, cpe: MonitorSmartphone, device: HelpCircle,
 };
+
+const ALL = '__all__';
 
 export function DeviceNode({ data, selected }) {
   const Icon = ROLE_ICON[data.role] || HelpCircle;
@@ -13,6 +16,15 @@ export function DeviceNode({ data, selected }) {
   const down = !data.up;
   const statusColor = down ? 'hsl(var(--status-crit))' : 'hsl(var(--status-ok))';
   const ports = data.ports || [];
+
+  // THRPT source: a specific interface (persisted) or the aggregate of all.
+  const editable = typeof data.onIfaceChange === 'function';
+  const selIface = data.thrpt_iface || ALL;
+  const isAll = selIface === ALL;
+  const selPort = isAll ? null : ports.find((p) => p.name === selIface);
+  const thrptBps = isAll
+    ? (data.total_in_bps || 0) + (data.total_out_bps || 0)
+    : (selPort ? (selPort.in_bps || 0) + (selPort.out_bps || 0) : 0);
 
   return (
     // Outer wrapper (no overflow) so per-port connection handles can sit on the edges.
@@ -61,17 +73,39 @@ export function DeviceNode({ data, selected }) {
           {down ? (
             <div className="mt-2 text-[10px] font-mono font-medium text-status-crit tracking-[0.14em]">OFFLINE</div>
           ) : (
-            <div className="mt-2 grid grid-cols-2 gap-1.5">
-              <div className="rounded-md bg-white/[0.03] border border-primary/10 px-1.5 py-1">
-                <div className="hud-label !text-[8px] !tracking-[0.12em]">RTT</div>
-                <div className="text-[11px] font-mono tabular">{data.latency_ms != null ? `${data.latency_ms}ms` : '—'}</div>
-              </div>
-              <div className="rounded-md bg-white/[0.03] border border-primary/10 px-1.5 py-1">
-                <div className="hud-label !text-[8px] !tracking-[0.12em]">THRPT</div>
-                <div className="text-[11px] font-mono tabular text-traffic-active">
-                  {fmtBpsShort((data.total_in_bps || 0) + (data.total_out_bps || 0))}
+            <div className="mt-2 space-y-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="rounded-md bg-white/[0.03] border border-primary/10 px-1.5 py-1">
+                  <div className="hud-label !text-[8px] !tracking-[0.12em]">RTT</div>
+                  <div className="text-[11px] font-mono tabular">{data.latency_ms != null ? `${data.latency_ms}ms` : '—'}</div>
+                </div>
+                <div className="rounded-md bg-white/[0.03] border border-primary/10 px-1.5 py-1 overflow-hidden">
+                  <div className="hud-label !text-[8px] !tracking-[0.12em]">THRPT</div>
+                  <div className="text-[11px] font-mono tabular text-traffic-active leading-tight">
+                    {fmtBpsShort(thrptBps)}
+                  </div>
+                  {!isAll && (
+                    <div className="text-[8px] font-mono text-accent/80 truncate leading-tight" title={selIface}>{selIface}</div>
+                  )}
                 </div>
               </div>
+              {editable && ports.length > 0 && (
+                <div className="nodrag nowheel" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                  <Select value={selIface} onValueChange={(v) => data.onIfaceChange(v)}>
+                    <SelectTrigger
+                      data-testid={`thrpt-iface-select-${data.id}`}
+                      className="h-6 min-h-0 py-0 px-1.5 text-[9px] font-mono bg-white/[0.03] border-primary/15 focus:ring-1 focus:ring-primary/40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      <SelectItem value={ALL} className="text-[11px]">All interfaces</SelectItem>
+                      {ports.map((p) => (
+                        <SelectItem key={p.name} value={p.name} className="text-[11px] font-mono">{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
         </div>

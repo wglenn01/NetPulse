@@ -372,6 +372,23 @@ async def set_position(device_id: str, pos: Position):
     return {"ok": True}
 
 
+class ThrptIface(BaseModel):
+    iface: Optional[str] = None  # None / "" -> aggregate of all interfaces
+
+
+@api.patch("/devices/{device_id}/thrpt-iface")
+async def set_thrpt_iface(device_id: str, body: ThrptIface):
+    """Choose which interface's throughput the topology node's THRPT tile shows.
+
+    Pass iface=null (or omit) to show the aggregate of all interfaces.
+    """
+    iface = (body.iface or "").strip() or None
+    res = await db.devices.update_one({"id": device_id}, {"$set": {"thrpt_iface": iface}})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Device not found")
+    return {"ok": True, "thrpt_iface": iface}
+
+
 @api.delete("/devices/{device_id}")
 async def delete_device(device_id: str):
     await db.devices.delete_one({"id": device_id})
@@ -418,8 +435,11 @@ async def topology():
             "total_in_bps": st.get("total_in_bps", 0), "total_out_bps": st.get("total_out_bps", 0),
             "iface_count": st.get("iface_count", 0), "iface_up": st.get("iface_up", 0),
             "sys_name": st.get("sysinfo", {}).get("name", ""),
+            "thrpt_iface": d.get("thrpt_iface"),
             "ports": [{"name": i["name"], "oper": i["oper"], "util": i.get("util", 0),
-                       "speed_mbps": i.get("speed_mbps", 0)} for i in st.get("interfaces", [])],
+                       "speed_mbps": i.get("speed_mbps", 0),
+                       "in_bps": i.get("in_bps", 0), "out_bps": i.get("out_bps", 0)}
+                      for i in st.get("interfaces", [])],
         })
 
     edges = []
