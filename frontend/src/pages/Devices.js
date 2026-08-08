@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { StatusDot } from '@/components/StatusDot';
 import { VendorBadge } from '@/components/VendorBadge';
 import { DeviceDrawer } from '@/components/DeviceDrawer';
 import { fmtBps, timeAgo, ROLE_LABEL } from '@/lib/format';
 import { toast } from 'sonner';
-import { Plus, Radar, Search, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Radar, Search, Trash2, Loader2, AlertTriangle, Pencil } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const VENDORS = ['mikrotik', 'ubiquiti', 'cambium', 'mimosa', 'generic'];
@@ -130,6 +131,92 @@ function AddDeviceDialog({ onAdded }) {
   );
 }
 
+function EditDeviceDialog({ device, open, onOpenChange, onSaved }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [f, setF] = useState(null);
+
+  React.useEffect(() => {
+    if (device) {
+      setF({
+        name: device.name || '', ip: device.ip || '', vendor: device.vendor || 'generic',
+        role: device.role || 'device', community: device.community || 'public',
+        snmp_port: device.snmp_port || 161, site: device.site || '',
+        enabled: device.enabled !== false,
+      });
+      setErr(null); setBusy(false);
+    }
+  }, [device]);
+
+  const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); if (err) setErr(null); };
+
+  const save = async () => {
+    if (!f.name || !f.ip) { setErr({ title: 'Missing fields', message: 'Name and IP address are required.', canForce: false }); return; }
+    setBusy(true); setErr(null);
+    try {
+      await api.put(`/devices/${device.id}`, { ...f, snmp_port: Number(f.snmp_port) });
+      toast.success(`Updated ${f.name}`);
+      onOpenChange(false); onSaved?.();
+    } catch (e) {
+      setErr(parseApiError(e, 'Failed to save changes. Please review the details and try again.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!f) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-card border-white/10" data-testid="edit-device-dialog">
+        <DialogHeader>
+          <DialogTitle>Edit Device</DialogTitle>
+          <DialogDescription>Update monitoring details. Changes apply on the next poll cycle.</DialogDescription>
+        </DialogHeader>
+        {err && (
+          <Alert variant="destructive" data-testid="edit-device-error"
+                 className="border-[hsl(var(--status-crit)/0.5)] bg-[hsl(var(--status-crit)/0.10)] text-[hsl(var(--status-crit))]">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-mono uppercase tracking-[0.14em] text-xs">{err.title}</AlertTitle>
+            <AlertDescription className="text-[hsl(var(--foreground)/0.9)]">{err.message}</AlertDescription>
+          </Alert>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-1"><Label>Name</Label><Input data-testid="edit-device-name-input" value={f.name} onChange={(e) => set('name', e.target.value)} /></div>
+          <div className="col-span-1"><Label>IP Address</Label><Input data-testid="edit-device-ip-input" value={f.ip} onChange={(e) => set('ip', e.target.value)} /></div>
+          <div><Label>Vendor</Label>
+            <Select value={f.vendor} onValueChange={(v) => set('vendor', v)}>
+              <SelectTrigger data-testid="edit-device-vendor-select"><SelectValue /></SelectTrigger>
+              <SelectContent>{VENDORS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>Role</Label>
+            <Select value={f.role} onValueChange={(v) => set('role', v)}>
+              <SelectTrigger data-testid="edit-device-role-select"><SelectValue /></SelectTrigger>
+              <SelectContent>{ROLES.map((v) => <SelectItem key={v} value={v}>{ROLE_LABEL[v]}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>SNMP Community</Label><Input data-testid="edit-device-community-input" value={f.community} onChange={(e) => set('community', e.target.value)} /></div>
+          <div><Label>SNMP Port</Label><Input data-testid="edit-device-port-input" type="number" value={f.snmp_port} onChange={(e) => set('snmp_port', e.target.value)} /></div>
+          <div className="col-span-2"><Label>Site (optional)</Label><Input data-testid="edit-device-site-input" value={f.site} onChange={(e) => set('site', e.target.value)} placeholder="Tower North" /></div>
+          <div className="col-span-2 flex items-center justify-between rounded-md border border-primary/10 bg-white/[0.03] px-3 py-2">
+            <div>
+              <Label className="text-sm">Monitoring enabled</Label>
+              <div className="text-[11px] text-muted-foreground">Pause polling &amp; alerts without deleting the device.</div>
+            </div>
+            <Switch data-testid="edit-device-enabled-switch" checked={f.enabled} onCheckedChange={(v) => set('enabled', v)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" className="border border-border" onClick={() => onOpenChange(false)} disabled={busy} data-testid="edit-device-cancel-button">Cancel</Button>
+          <Button data-testid="save-device-button" onClick={save} disabled={busy} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            {busy ? <><Loader2 size={16} className="mr-1.5 animate-spin" />Saving…</> : <>Save Changes</>}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DiscoveryDialog({ onAdded }) {
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
@@ -210,6 +297,7 @@ export default function Devices() {
   const [vendor, setVendor] = useState('all');
   const [status, setStatus] = useState('all');
   const [drawer, setDrawer] = useState(null);
+  const [editing, setEditing] = useState(null);
   const devices = data || [];
 
   const filtered = useMemo(() => devices.filter((d) => {
@@ -284,7 +372,18 @@ export default function Devices() {
                 <td className="px-3 text-right font-mono tabular text-traffic-active">{fmtBps((d.total_in_bps || 0) + (d.total_out_bps || 0))}</td>
                 <td className="px-3 text-right font-mono tabular">{d.iface_up}/{d.iface_count}</td>
                 <td className="px-4 text-right">
-                  <button onClick={(e) => del(e, d)} data-testid={`delete-device-${d.id}`} className="text-muted-foreground hover:text-status-crit transition-colors"><Trash2 size={15} /></button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button onClick={(e) => { e.stopPropagation(); setEditing(d); }} data-testid={`edit-device-${d.id}`}
+                            title="Edit device"
+                            className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                      <Pencil size={15} />
+                    </button>
+                    <button onClick={(e) => del(e, d)} data-testid={`delete-device-${d.id}`}
+                            title="Delete device"
+                            className="p-1 rounded text-muted-foreground hover:text-status-crit hover:bg-status-crit/10 transition-colors">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -294,6 +393,7 @@ export default function Devices() {
       </div>
 
       <DeviceDrawer deviceId={drawer} open={!!drawer} onOpenChange={(o) => !o && setDrawer(null)} />
+      <EditDeviceDialog device={editing} open={!!editing} onOpenChange={(o) => !o && setEditing(null)} onSaved={refresh} />
     </div>
   );
 }

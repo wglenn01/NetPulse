@@ -286,6 +286,13 @@
 - Verified: curl PATCH set/reset; UI — core-rtr-01 THRPT switched 8.6G (all) → 1.8G (to-dist-1) and persisted; NOC map shows 0 editable selectors, no runtime errors. Threshold for animated "active" links also lowered to 20 kbps / ≥1% util (Phase H.4) so real low-traffic links animate.
 - Note: this is code (backend+frontend) — self-host must redeploy (`git pull` + `docker compose up -d --build`) to get it.
 
+## Phase J — Edit Device after adding (COMPLETED ✔)
+**User request:** a way to edit device information after devices are added.
+- Backend (`server.py`): hardened `PUT /api/devices/{id}` with the same structured errors as create — validates name/IP format/port range, and blocks duplicate IP+SNMP-port against *other* devices (409); returns 404 if missing.
+- Frontend `Devices.js`: added a **pencil Edit button** on each table row → `EditDeviceDialog` pre-filled with the device's fields (name, IP, vendor, role, community, SNMP port, site) plus a **"Monitoring enabled"** Switch (pauses polling/alerts via `enabled` without deleting). Saves via PUT with inline `Alert` errors (reuses `parseApiError`). Delete button kept alongside.
+- Verified: curl — valid edit (name/site/role/enabled incl. unicode) 200, invalid IP 400, invalid port 400, duplicate 409; UI — 13 edit buttons, dialog pre-fills correctly, empty-name shows inline validation, no runtime errors, demo data intact.
+- Note: code change — self-host redeploy (`git pull` + `docker compose up -d --build`) to get it.
+
 ## Pending / Next
 - **Topology Map "Tidy" button (P1, NOT STARTED):** one-click auto-layout arranging nodes by role (core → dist → AP → CPE) and clearing overlaps in `frontend/src/pages/Topology.js` (dagre or role-based heuristic). Requested by user earlier; deferred during deployment work.
 

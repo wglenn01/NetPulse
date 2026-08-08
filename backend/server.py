@@ -355,12 +355,55 @@ async def get_device(device_id: str):
 
 @api.put("/devices/{device_id}")
 async def update_device(device_id: str, body: DeviceUpdate):
+    existing = await db.devices.find_one({"id": device_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(404, "Device not found")
+
     patch = {k: v for k, v in body.model_dump().items() if v is not None}
     if not patch:
-        raise HTTPException(400, "No fields to update")
-    res = await db.devices.update_one({"id": device_id}, {"$set": patch})
-    if res.matched_count == 0:
-        raise HTTPException(404, "Device not found")
+        raise HTTPException(400, {"code": "validation", "title": "Nothing to update",
+                                  "message": "No fields were provided to update.", "can_force": False})
+
+    if "name" in patch:
+        patch["name"] = patch["name"].strip()
+        if not patch["name"]:
+            raise HTTPException(400, {"code": "validation", "title": "Missing name",
+                                      "message": "Device name cannot be empty.", "can_force": False})
+    if "ip" in patch:
+        patch["ip"] = patch["ip"].strip()
+        try:
+            ipaddress.ip_address(patch["ip"])
+        except ValueError:
+            raise HTTPException(400, {"code": "invalid_ip", "title": "Invalid IP address",
+                                      "message": f"\"{patch['ip']}\" is not a valid IPv4/IPv6 address.",
+                                      "can_force": False})
+    if "community" in patch:
+        patch["community"] = (patch["community"] or "").strip() or "public"
+    if "snmp_port" in patch:
+        try:
+            p = int(patch["snmp_port"])
+        except (TypeError, ValueError):
+            p = 0
+        if not (1 <= p <= 65535):
+            raise HTTPException(400, {"code": "invalid_port", "title": "Invalid SNMP port",
+                                      "message": "SNMP port must be a number between 1 and 65535.",
+                                      "can_force": False})
+        patch["snmp_port"] = p
+
+    # duplicate check (ip + snmp_port) against OTHER devices
+    eff_ip = patch.get("ip", existing.get("ip"))
+    eff_port = patch.get("snmp_port", existing.get("snmp_port", 161))
+    dup = await db.devices.find_one({"ip": eff_ip, "snmp_port": eff_port, "id": {"$ne": device_id}},
+                                    {"_id": 0, "name": 1})
+    if dup:
+        raise HTTPException(409, {
+            "code": "duplicate", "title": "Device already monitored",
+            "message": (f"IP {eff_ip} (SNMP port {eff_port}) is already monitored as "
+                        f"\"{dup.get('name', 'unknown')}\". Choose a different IP/port."),
+            "can_force": False,
+        })
+
+    await db.devices.update_one({"id": device_id}, {"$set": patch})
     return serialize(await db.devices.find_one({"id": device_id}))
 
 
